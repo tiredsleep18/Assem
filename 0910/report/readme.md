@@ -2,7 +2,7 @@
 
 ---
 
-### **Chapter 2.8 Review Questions 풀이**
+### **Chapter 2.8 Review Questions **
 
 1. **In 32-bit mode, aside from the stack pointer (ESP), what other register points to variables on the stack?**
    * **답:** **EBP** (Extended Base Pointer)
