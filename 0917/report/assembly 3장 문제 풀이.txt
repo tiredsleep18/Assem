@@ -1,0 +1,287 @@
+
+### **3.9.1 Short Answer (단답형 문제)**
+
+1. **Provide examples of three different instruction mnemonics.**
+   * **답:** `MOV`, `ADD`, `SUB`
+
+2. **What is a calling convention, and how is it used in assembly language declarations?**
+   * **답:** 서브루틴/프로시저 호출 시 매개변수를 스택에 전달하는 순서와 스택 정리(clean-up)를 누가 담당하는지 정의하는 규칙(예: `stdcall`, `cdecl`)입니다.
+
+3. **How do you reserve space for the stack in a program?**
+   * **답:** `.stack` 지시어를 사용해 크기(예: `.stack 4096`)를 지정합니다.
+
+4. **Explain why the term assembler language is not quite correct.**
+   * **답:** "Assembler"는 소스 코드를 기계어로 번역하는 **프로그램(도구)**의 이름이며, 언어 자체의 명칭은 **"Assembly language"**이기 때문입니다.
+
+5. **Explain the difference between big endian and little endian. Also, look up the origins of this term on the Web.**
+   * **답:** **Little-endian**은 하위 바이트(LSB)를 낮은 메모리 주소에 저장하는 방식(x86 아키텍처)이고, **Big-endian**은 상위 바이트(MSB)를 낮은 주소에 저장합니다. 명칭은 조너선 스위프트의 소설 《걸리버 여행기》에서 달걀의 뾰족한 쪽/둔한 쪽 중 어느 부위를 깨뜨릴지 다투는 파벌 논쟁에서 유래되었습니다.
+
+6. **Why might you use a symbolic constant rather than an integer literal in your code?**
+   * **답:** 코드의 **가독성**을 높이고, 특정 상수를 변경해야 할 때 정의된 한 곳만 수정하면 되므로 **유지보수성**이 좋아집니다.
+
+7. **How is a source file different from a listing file?**
+   * **답:** **Source file(`.asm`)**은 개발자가 직접 작성한 소스 코드 파일이고, **Listing file(`.lst`)**은 어셈블러가 생성한 파일로 소스 코드 외에 행 번호, 메모리 오프셋 주소, 기계어 바이트(Opcode), 심볼 테이블 등이 포함되어 있습니다.
+
+8. **How are data labels and code labels different?**
+   * **답:** **Code label**은 실행할 명령어의 위치를 가리키며 콜론(`:`)으로 끝납니다. 반면 **Data label**은 메모리에 할당된 변수의 위치를 가리키며 콜론 없이 선언됩니다.
+
+9. **(True/False): An identifier cannot begin with a numeric digit.**
+   * **답:** **True** (식별자는 숫자로 시작할 수 없습니다).
+
+10. **(True/False): A hexadecimal literal may be written as 0x3A.**
+    * **답:** **False** (MASM에서는 `3Ah` 또는 `03Ah`와 같이 접미사 `h`를 사용합니다).
+
+11. **(True/False): Assembly language directives execute at runtime.**
+    * **답:** **False** (지시어 Directive는 어셈블 시점에 어셈블러에 명령을 전달하며 런타임에 실행되지 않습니다).
+
+12. **(True/False): Assembly language directives can be written in any combination of uppercase and lowercase letters.**
+    * **답:** **True** (MASM 지시어 및 문법은 대소문자를 구분하지 않습니다).
+
+13. **Name the four basic parts of an assembly language instruction.**
+    * **답:** **Label (선택)**, **Instruction Mnemonic (필수)**, **Operand(s) (대개 필수)**, **Comment (선택)**.
+
+14. **(True/False): MOV is an example of an instruction mnemonic.**
+    * **답:** **True**.
+
+15. **(True/False): A code label is followed by a colon (:), but a data label does not end with a colon.**
+    * **답:** **True**.
+
+16. **Show an example of a block comment.**
+    * **답:** `COMMENT ! 이 블록 내부의 모든 내용은 주석 처리됩니다 !`.
+
+17. **Why is it not a good idea to use numeric addresses when writing instructions that access variables?**
+    * **답:** 코드가 수정되거나 데이터 위치가 이동할 때 주소값이 바뀌어 오류가 발생하기 쉽고 가독성이 저하됩니다.
+
+18. **What type of argument must be passed to the ExitProcess procedure?**
+    * **답:** **DWORD** 타입의 종료 코드 정수값(정상 종료 시 0).
+
+19. **Which directive ends a procedure?**
+    * **답:** `ENDP`.
+
+20. **In 32-bit mode, what is the purpose of the identifier in the END directive?**
+    * **답:** 프로그램의 **진입점(Entry Point)**을 지정합니다 (예: `END main`).
+
+21. **What is the purpose of the PROTO directive?**
+    * **답:** 프로시저의 **프로토타입(시그니처)**을 선언하여 매개변수 개수와 형식을 알립니다.
+
+22. **(True/False): An Object file is produced by the Linker.**
+    * **답:** **False** (Object 파일은 Assembler가 생성하며, Linker는 Executable 실행 파일을 만듭니다).
+
+23. **(True/False): A Listing file is produced by the Assembler.**
+    * **답:** **True**.
+
+24. **(True/False): A link library is added to a program just before producing an Executable file.**
+    * **답:** **True**.
+
+25. **Which data directive creates a 32-bit signed integer variable?**
+    * **답:** `SDWORD`.
+
+26. **Which data directive creates a 16-bit signed integer variable?**
+    * **답:** `SWORD`.
+
+27. **Which data directive creates a 64-bit unsigned integer variable?**
+    * **답:** `QWORD`.
+
+28. **Which data directive creates an 8-bit signed integer variable?**
+    * **답:** `SBYTE`.
+
+29. **Which data directive creates a 10-byte packed BCD variable?**
+    * **답:** `TBYTE`.
+
+---
+
+### **3.9.2 Algorithm Workbench**
+
+1. **Define four symbolic constants that represent integer 25 in decimal, binary, octal, and hexadecimal formats.**
+   ```assembly
+   VAL_DEC = 25
+   VAL_BIN = 00011001b
+   VAL_OCT = 31q
+   VAL_HEX = 19h
+   ```
+
+2. **Find out, by trial and error, if a program can have multiple code and data segments.**
+   * **답:** **가능합니다.** 어셈블러는 소스 코드 내 분산된 여러 개의 `.data` 및 `.code` 세그먼트들을 하나로 병합하여 어셈블합니다.
+
+3. **Create a data definition for a doubleword that stored it in memory in big endian format.**
+   ```assembly
+   ; Big-Endian 순서인 12345678h를 바이트 단위로 직접 선언
+   bigEndianData BYTE 12h, 34h, 56h, 78h
+   ```
+
+4. **Find out if you can declare a variable of type DWORD and assign it a negative value. What does this tell you about the assembler’s type checking?**
+   * **답:** **선언 가능합니다.** 이는 MASM의 타입 체크가 데이터의 메모리 크기(Bit Width)를 위주로 검사하며, 부호 여부(Signed/Unsigned)를 엄격히 강제하지 않음을 뜻합니다.
+
+5. **Write a program that contains two instructions: (1) add the number 5 to the EAX register, and (2) add 5 to the EDX register. Generate a listing file and examine the machine code generated by the assembler. What differences, if any, did you find between the two instructions?**
+   * **답:** `ADD EAX, 5`는 EAX 전용 축약 명령어(`05 00000005`)로 변환되는 반면, `ADD EDX, 5`는 일반 범용 레지스터용 Opcode 규칙(`83 C2 05` 등)이 적용됩니다.
+
+6. **Given the number 456789ABh, list out its byte values in little-endian order.**
+   * **답:** 낮은 메모리 주소부터 **`ABh`, `89h`, `67h`, `45h`** 순으로 저장됩니다.
+
+7. **Declare an array of 120 uninitialized unsigned doubleword values.**
+   ```assembly
+   dArray DWORD 120 DUP(?)
+   ```
+
+8. **Declare an array of byte and initialize it to the first 5 letters of the alphabet.**
+   ```assembly
+   bArray BYTE 'A', 'B', 'C', 'D', 'E'
+   ```
+
+9. **Declare a 32-bit signed integer variable and initialize it with the smallest possible negative decimal value.**
+   ```assembly
+   minSDWORD SDWORD -2147483648
+   ```
+
+10. **Declare an unsigned 16-bit integer variable named wArray that uses three initializers.**
+    ```assembly
+    wArray WORD 10, 20, 30
+    ```
+
+11. **Declare a string variable containing the name of your favorite color. Initialize it as a null-terminated string.**
+    ```assembly
+    myColor BYTE "Blue", 0
+    ```
+
+12. **Declare an uninitialized array of 50 signed doublewords named dArray.**
+    ```assembly
+    dArray SDWORD 50 DUP(?)
+    ```
+
+13. **Declare a string variable containing the word “TEST” repeated 500 times.**
+    ```assembly
+    testStr BYTE 500 DUP("TEST")
+    ```
+
+14. **Declare an array of 20 unsigned bytes named bArray and initialize all elements to zero.**
+    ```assembly
+    bArray BYTE 20 DUP(0)
+    ```
+
+15. **Show the order of individual bytes in memory (lowest to highest) for the following doubleword variable: `val1 DWORD 87654321h`**
+    * **답:** 낮은 주소부터 **`21h`, `43h`, `65h`, `87h`** 순입니다.
+
+---
+
+### **3.10 Programming Exercises (프로그래밍 실습)**
+
+1. **Integer Expression Calculation (`A = (A + B) - (C + D)`)**
+   ```assembly
+   .386
+   .model flat,stdcall
+   .stack 4096
+   ExitProcess PROTO, dwExitCode:DWORD
+
+   .code
+   main PROC
+       mov eax, 10     ; A = 10
+       mov ebx, 5      ; B = 5
+       mov ecx, 3      ; C = 3
+       mov edx, 2      ; D = 2
+
+       add eax, ebx    ; EAX = A + B (15)
+       add ecx, edx    ; ECX = C + D (5)
+       sub eax, ecx    ; EAX = (A + B) - (C + D) = 10
+
+       INVOKE ExitProcess, 0
+   main ENDP
+   END main
+   ```
+
+2. **Symbolic Integer Constants**
+   ```assembly
+   .386
+   .model flat,stdcall
+   .stack 4096
+   ExitProcess PROTO, dwExitCode:DWORD
+
+   SUNDAY    = 0
+   MONDAY    = 1
+   TUESDAY   = 2
+   WEDNESDAY = 3
+   THURSDAY  = 4
+   FRIDAY    = 5
+   SATURDAY  = 6
+
+   .data
+   daysArray BYTE SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
+
+   .code
+   main PROC
+       INVOKE ExitProcess, 0
+   main ENDP
+   END main
+   ```
+
+3. **Data Definitions**
+   ```assembly
+   .386
+   .model flat,stdcall
+   .stack 4096
+   ExitProcess PROTO, dwExitCode:DWORD
+
+   .data
+   vByte   BYTE   255
+   vSByte  SBYTE  -128
+   vWord   WORD   65535
+   vSWord  SWORD  -32768
+   vDword  DWORD  4294967295
+   vSDword SDWORD -2147483648
+   vFPoint REAL4  3.14159
+   vQword  QWORD  1234567890ABCDEFh
+   vTByte  TBYTE  10000000000000000000h
+
+   .code
+   main PROC
+       INVOKE ExitProcess, 0
+   main ENDP
+   END main
+   ```
+
+4. **Symbolic Text Constants**
+   ```assembly
+   .386
+   .model flat,stdcall
+   .stack 4096
+   ExitProcess PROTO, dwExitCode:DWORD
+
+   str1 TEXTEQU <"Welcome to Assembly", 0>
+   str2 TEXTEQU <"MASM Programming", 0>
+
+   .data
+   msg1 BYTE str1
+   msg2 BYTE str2
+
+   .code
+   main PROC
+       INVOKE ExitProcess, 0
+   main ENDP
+   END main
+   ```
+
+5. **Listing File for AddTwoSum**
+   * **설명:** 어셈블 시 생성된 `.lst` 파일에서 각 명령어가 기계어로 어떻게 변환되었는지 확인할 수 있습니다. `mov eax, 5`는 `B8 00000005` (B8: MOV EAX 레지스터 기계어 코드 및 32비트 정수값), `add eax, 6`은 `83 C0 06`, `mov sum, eax`는 `A3 00000000` (A3: EAX의 값을 지정된 오프셋 메모리로 이동)으로 변환됩니다.
+
+6. **AddVariables Program (64-Bit Extension)**
+   ```assembly
+   .data
+   firstval  QWORD 1111111111111111h
+   secondval QWORD 2222222222222222h
+   thirdval  QWORD 3333333333333333h
+   sum       QWORD 0
+
+   .code
+   main PROC
+       mov rax, firstval
+       add rax, secondval
+       add rax, thirdval
+       mov sum, rax
+       ret
+   main ENDP
+   END
+   ```
+   * **구문 오류 원인 및 해결:** 32비트 레지스터(`EAX`)로 64비트 메모리(`QWORD`) 데이터를 조작하려고 시도하면 **Operand size mismatch** 오류가 발생합니다. 64비트 레지스터인 `RAX`로 수정하여 해결합니다.
+
+---
+
+💡 풀이 내용 중 구체적인 실행 방식이나 어셈블러 지시어 동작에 대해 추가 질문이 있으시면 편하게 말씀해 주세요!
