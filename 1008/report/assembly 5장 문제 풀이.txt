@@ -1,0 +1,474 @@
+
+
+[5.8 Review Questions and Exercises]
+
+1. 5.8.1 Short Answer
+-------------------------------------------------------------------
+1. Which instruction pushes all of the 32-bit general-purpose registers on the stack?
+   - 답: PUSHAD
+
+2. Which instruction pushes the 32-bit EFLAGS register on the stack?
+   - 답: PUSHFD
+
+3. Which instruction pops the stack into the EFLAGS register?
+   - 답: POPFD
+
+4. Why might NASM approach (listing specific registers) be better than PUSHAD in MASM?
+   - 답: PUSHAD는 불필요한 레지스터까지 포함해 8개 범용 레지스터 전체를 푸시하여 오버헤드가 발생함. 필요한 레지스터만 선별 푸시하면 메모리와 실행 시간이 절약됨.
+
+5. Write a sequence of two instructions that accomplish the same as 'push eax' without PUSH:
+   sub esp, 4
+   mov [esp], eax
+
+6. (True/False): The RET instruction pops the top of the stack into the instruction pointer.
+   - 답: True
+
+7. (True/False): Nested procedure calls are not permitted unless NESTED operator is used.
+   - 답: False
+
+8. (True/False): In protected mode, each procedure call uses a minimum of 4 bytes of stack space.
+   - 답: True
+
+9. (True/False): The ESI and EDI registers cannot be used when passing 32-bit parameters.
+   - 답: False
+
+10. (True/False): The ArraySum procedure receives a pointer to any array of doublewords.
+    - 답: True
+
+11. (True/False): The USES operator lets you name all registers that are modified within a procedure.
+    - 답: True
+
+12. (True/False): The USES operator only generates PUSH instructions, so you must code POP yourself.
+    - 답: False
+
+13. (True/False): The register list in the USES directive must use commas to separate names.
+    - 답: False (공백으로 구분)
+
+14. Which statement(s) in ArraySum must be modified to accumulate 16-bit words?
+    - 'add esi, TYPE DWORD' -> 'add esi, TYPE WORD'
+    - 'add eax, [esi]' -> 'movzx ebx, WORD PTR [esi]' 및 'add eax, ebx'
+
+15. Final value in EAX after: push 5 / push 6 / pop eax / pop eax
+    - 답: 5
+
+16. Code run analysis (Ex2Sub):
+    - 답: d. The program will halt with a runtime error on Line 11 (복귀 주소가 아닌 매개변수를 POP하여 부적절한 주소로 RET 시도)
+
+17. Code run analysis (Ex3Sub):
+    - 답: c. EAX will equal 30 on line 6 (pusha/popa로 인해 EAX 레지스터 값 보존)
+
+18. Code run analysis (Ex4Sub):
+    - 답: c. EAX will equal 30 on line 6 (Here 라벨 주소를 PUSH 후 jmp, RET이 Here로 복귀)
+
+19. Code run analysis (Ex5Sub):
+    - 답: a. EDX will equal 40 on line 6 (복귀 주소를 백업 후 pop edx 실행 및 복귀 주소 재푸시)
+
+20. Values written to array (proc_1, proc_2, proc_3):
+    - 답: 10, 20, 30, 40
+
+2. 5.8.2 Algorithm Workbench
+-------------------------------------------------------------------
+1. PUSH/POP만으로 EAX와 EBX 값 교환:
+   push eax
+   push ebx
+   pop  eax
+   pop  ebx
+
+2. 서브루틴 복귀 주소를 스택상에서 3바이트 뒤로 변경:
+   add DWORD PTR [esp], 3
+
+3. 스택에 8바이트 지역변수 공간 확보 후 1000h, 2000h 대입:
+   sub esp, 8
+   mov DWORD PTR [esp], 1000h
+   mov DWORD PTR [esp + 4], 2000h
+
+4. 인덱스 주소 지정으로 더블워드 배열 요소를 이전 위치로 복사:
+   mov eax, array[esi]
+   mov array[esi - 4], eax
+
+5. ESP 변경 없이 스택의 복귀 주소를 읽어 EAX에 저장 후 16진수 출력:
+   mov eax, [esp]
+   call WriteHex
+
+===================================================================
+[5.9 Programming Exercises]
+===================================================================
+
+1. Draw Text Colors
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+msg BYTE "Text with different colors!", 0
+colors BYTE red, green, blue, yellow
+
+.code
+main PROC
+    mov ecx, LENGTHOF colors
+    mov esi, 0
+L1:
+    movzx eax, colors[esi]
+    call SetTextColor
+    mov edx, OFFSET msg
+    call WriteString
+    call Crlf
+    inc esi
+    loop L1
+    exit
+main ENDP
+END main
+
+2. Linking Array Items
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+start DWORD 1
+chars BYTE 'H', 'A', 'C', 'E', 'B', 'D', 'F', 'G'
+links DWORD 0, 4, 5, 6, 2, 3, 7, 0
+output BYTE LENGTHOF chars DUP(?)
+
+.code
+main PROC
+    mov esi, start
+    mov edi, 0
+    mov ecx, LENGTHOF chars
+L1:
+    mov al, chars[esi]
+    mov output[edi], al
+    mov esi, links[esi * 4]
+    inc edi
+    loop L1
+    exit
+main ENDP
+END main
+
+3. Simple Addition (1)
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+prompt1 BYTE "Enter first integer: ", 0
+prompt2 BYTE "Enter second integer: ", 0
+resMsg  BYTE "The sum is: ", 0
+
+.code
+main PROC
+    call Clrscr
+    mov dh, 12
+    mov dl, 25
+    call Gotoxy
+
+    mov edx, OFFSET prompt1
+    call WriteString
+    call ReadInt
+    mov ebx, eax
+
+    mov edx, OFFSET prompt2
+    call WriteString
+    call ReadInt
+
+    add eax, ebx
+    mov edx, OFFSET resMsg
+    call WriteString
+    call WriteInt
+    call Crlf
+    exit
+main ENDP
+END main
+
+4. Simple Addition (2)
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+prompt1 BYTE "Enter first integer: ", 0
+prompt2 BYTE "Enter second integer: ", 0
+resMsg  BYTE "The sum is: ", 0
+
+.code
+main PROC
+    mov ecx, 3
+L1:
+    push ecx
+    call Clrscr
+    mov dh, 12
+    mov dl, 25
+    call Gotoxy
+
+    mov edx, OFFSET prompt1
+    call WriteString
+    call ReadInt
+    mov ebx, eax
+
+    mov edx, OFFSET prompt2
+    call WriteString
+    call ReadInt
+
+    add eax, ebx
+    mov edx, OFFSET resMsg
+    call WriteString
+    call WriteInt
+    call Crlf
+    call WaitMsg
+
+    pop ecx
+    loop L1
+    exit
+main ENDP
+END main
+
+5. BetterRandomRange Procedure
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.code
+BetterRandomRange PROC USES ebx
+    ; Receives: EBX = lower bound M, EAX = upper bound N
+    ; Returns: EAX = random integer in [M, N-1]
+    sub eax, ebx
+    call RandomRange
+    add eax, ebx
+    ret
+BetterRandomRange ENDP
+
+main PROC
+    call Randomize
+    mov ecx, 50
+L1:
+    mov ebx, -300
+    mov eax, 100
+    call BetterRandomRange
+    call WriteInt
+    mov al, ' '
+    call WriteChar
+    loop L1
+    call Crlf
+    exit
+main ENDP
+END main
+
+6. Random Strings
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+strBuffer BYTE 21 DUP(0)
+
+.code
+GetRandomString PROC USES eax ecx esi
+    mov ecx, eax
+L1:
+    mov eax, 26
+    call RandomRange
+    add eax, 'A'
+    mov [esi], al
+    inc esi
+    loop L1
+    mov BYTE PTR [esi], 0
+    ret
+GetRandomString ENDP
+
+main PROC
+    call Randomize
+    mov ecx, 20
+L1:
+    push ecx
+    mov eax, 20
+    mov esi, OFFSET strBuffer
+    call GetRandomString
+    mov edx, OFFSET strBuffer
+    call WriteString
+    call Crlf
+    pop ecx
+    loop L1
+    exit
+main ENDP
+END main
+
+7. Random Screen Locations
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.code
+main PROC
+    call Randomize
+    call Clrscr
+    call GetMaxXY
+    movzx ebx, dl
+    movzx ecx, al
+    push ecx
+
+    mov ecx, 100
+L1:
+    push ecx
+    mov eax, ebx
+    call RandomRange
+    mov dl, al
+
+    pop ecx
+    push ecx
+    mov eax, [esp + 4]
+    call RandomRange
+    mov dh, al
+
+    call Gotoxy
+    mov al, 'A'
+    call WriteChar
+
+    mov eax, 100
+    call Delay
+
+    pop ecx
+    loop L1
+
+    pop ecx
+    exit
+main ENDP
+END main
+
+8. Color Matrix
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.code
+main PROC
+    mov ecx, 16
+    mov ebx, 0
+
+L_Back:
+    push ecx
+    mov ecx, 16
+    mov edx, 0
+
+L_Fore:
+    mov eax, ebx
+    shl eax, 4
+    add eax, edx
+    call SetTextColor
+
+    mov al, 'X'
+    call WriteChar
+
+    inc edx
+    loop L_Fore
+
+    call Crlf
+    inc ebx
+    pop ecx
+    loop L_Back
+
+    mov eax, lightGray + (black * 16)
+    call SetTextColor
+    exit
+main ENDP
+END main
+
+9. Recursive Procedure
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+counter DWORD 0
+
+.code
+RecursiveSub PROC
+    inc counter
+    loop RecursiveSub
+    ret
+RecursiveSub ENDP
+
+main PROC
+    mov ecx, 10
+    call RecursiveSub
+
+    mov eax, counter
+    call WriteDec
+    call Crlf
+    exit
+main ENDP
+END main
+
+10. Fibonacci Generator
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+fibArray DWORD 47 DUP(?)
+
+.code
+GenerateFibonacci PROC USES eax ebx ecx esi
+    cmp ecx, 0
+    je Quit
+    mov DWORD PTR [esi], 1
+    cmp ecx, 1
+    je Quit
+    mov DWORD PTR [esi + 4], 1
+    cmp ecx, 2
+    je Quit
+
+    sub ecx, 2
+    add esi, 8
+
+L1:
+    mov eax, [esi - 4]
+    add eax, [esi - 8]
+    mov [esi], eax
+    add esi, 4
+    loop L1
+
+Quit:
+    ret
+GenerateFibonacci ENDP
+
+main PROC
+    mov esi, OFFSET fibArray
+    mov ecx, 47
+    call GenerateFibonacci
+
+    mov eax, fibArray[46 * 4]
+    call WriteDec
+    call Crlf
+    exit
+main ENDP
+END main
+
+11. Finding Multiples of K
+-------------------------------------------------------------------
+INCLUDE [의심스러운 링크 삭제됨]
+
+.data
+N = 50
+byteArray BYTE N DUP(0)
+
+.code
+FindMultiples PROC USES eax ebx ecx esi
+    mov eax, 1
+L1:
+    push eax
+    mov edx, 0
+    div ebx
+    cmp edx, 0
+    jne Next
+    pop eax
+    mov BYTE PTR [esi + eax], 1
+    push eax
+Next:
+    pop eax
+    inc eax
+    cmp eax, ecx
+    jl L1
+    ret
+FindMultiples ENDP
+
+main PROC
+    mov esi, OFFSET byteArray
+    mov ebx, 2
+    mov ecx, N
+    call FindMultiples
+
+    mov ebx, 3
+    call FindMultiples
+    exit
+main ENDP
+END main
