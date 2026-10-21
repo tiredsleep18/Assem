@@ -1,0 +1,884 @@
+교재 **Assembly Language for x86 Processors (7th Edition)** 의 **Section 6.11 Programming Exercises (269페이지 / Book page 237~241)** 에 수록된 전체 실습 문제(1번~10번) 풀이입니다.
+
+메모장에 한 번에 복사해서 붙여넣어 보관하실 수 있도록 아래의 하나의 코드 블록으로 작성했습니다. 상단의 **[Copy]** 버튼을 누르시면 전체 풀이를 복사하실 수 있습니다.
+
+```text
+===================================================================
+ [Assembly Language for x86 Processors 7th Edition] 
+ Chapter 6.11 Programming Exercises (6.11.1 & 6.11.2) 풀이 전체
+===================================================================
+
+-------------------------------------------------------------------
+1. Filling an Array
+-------------------------------------------------------------------
+; 6.11.2 - Exercise 1: Filling an Array
+INCLUDE Irvine32.inc
+
+.data
+N = 10
+array1 DWORD N DUP(?)
+array2 DWORD N DUP(?)
+
+.code
+;-------------------------------------------------------------------
+; FillArray: N개의 임의의 정수를 j...k 범위 내에서 생성하여 배열을 채움
+; Receives: ESI = 배열 포인터, ECX = N, EBX = j (최소값), EDX = k (최대값)
+; Returns: 없음 (모든 레지스터 값 보존)
+;-------------------------------------------------------------------
+FillArray PROC USES eax ebx ecx edx esi
+    sub edx, ebx
+    inc edx            ; EDX = 범위 크기 (k - j + 1)
+L1:
+    mov eax, edx
+    call RandomRange   ; 0 ~ (k - j)
+    add eax, ebx       ; j ~ k 범위로 보정
+    mov [esi], eax
+    add esi, TYPE DWORD
+    loop L1
+    ret
+FillArray ENDP
+
+main PROC
+    call Randomize
+
+    ; 테스트 1: j = -10, k = 10
+    mov esi, OFFSET array1
+    mov ecx, N
+    mov ebx, -10
+    mov edx, 10
+    call FillArray
+
+    ; 테스트 2: j = 100, k = 200
+    mov esi, OFFSET array2
+    mov ecx, N
+    mov ebx, 100
+    mov edx, 200
+    call FillArray
+
+    exit
+main ENDP
+END main
+
+-------------------------------------------------------------------
+2. Summing Array Elements in a Range
+-------------------------------------------------------------------
+; 6.11.2 - Exercise 2: Summing Array Elements in a Range
+INCLUDE Irvine32.inc
+
+.data
+array SDWORD -5, 10, 20, 30, 45, -15, 60, 5, 0, 100
+ArraySize = LENGTHOF array
+sum1 DWORD ?
+sum2 DWORD ?
+
+.code
+;-------------------------------------------------------------------
+; SumRange: 배열 요소 중 j...k 범위에 속하는 값들의 합계를 반환
+; Receives: ESI = 배열 포인터, ECX = 배열 크기, EBX = j, EDX = k
+; Returns: EAX = 범위 내 요소들의 합계
+;-------------------------------------------------------------------
+SumRange PROC USES ebx ecx edx esi edi
+    mov edi, 0         ; 합계 누적용
+L1:
+    mov eax, [esi]
+    cmp eax, ebx       ; j 이상인지 검사
+    jl Next
+    cmp eax, edx       ; k 이하인지 검사
+    jg Next
+    add edi, eax       ; j <= element <= k 만족 시 가산
+Next:
+    add esi, TYPE SDWORD
+    loop L1
+    mov eax, edi       ; 합계를 EAX로 반환
+    ret
+SumRange ENDP
+
+main PROC
+    ; 테스트 1: 범위 0 ~ 50
+    mov esi, OFFSET array
+    mov ecx, ArraySize
+    mov ebx, 0
+    mov edx, 50
+    call SumRange
+    mov sum1, eax
+
+    ; 테스트 2: 범위 -10 ~ 15
+    mov esi, OFFSET array
+    mov ecx, ArraySize
+    mov ebx, -10
+    mov edx, 15
+    call SumRange
+    mov sum2, eax
+
+    exit
+main ENDP
+END main
+
+-------------------------------------------------------------------
+3. Test Score Evaluation
+-------------------------------------------------------------------
+; 6.11.2 - Exercise 3: Test Score Evaluation
+INCLUDE Irvine32.inc
+
+.data
+promptMsg BYTE " -> Grade: ", 0
+
+.code
+;-------------------------------------------------------------------
+; CalcGrade: 0~100 점수를 받아 해당하는 알파벳 학점을 반환
+; Receives: EAX = 점수 (0..100)
+; Returns: AL = 알파벳 학점 ('A', 'B', 'C', 'D', 'F')
+;-------------------------------------------------------------------
+CalcGrade PROC USES ebx
+    cmp eax, 90
+    jge GradeA
+    cmp eax, 80
+    jge GradeB
+    cmp eax, 70
+    jge GradeC
+    cmp eax, 60
+    jge GradeD
+    mov al, 'F'
+    jmp Done
+GradeA:
+    mov al, 'A'
+    jmp Done
+GradeB:
+    mov al, 'B'
+    jmp Done
+GradeC:
+    mov al, 'C'
+    jmp Done
+GradeD:
+    mov al, 'D'
+Done:
+    ret
+CalcGrade ENDP
+
+main PROC
+    call Randomize
+    mov ecx, 10
+
+L1:
+    mov eax, 51
+    call RandomRange
+    add eax, 50        ; 50 ~ 100 무작위 점수 생성
+
+    call WriteDec
+    mov edx, OFFSET promptMsg
+    call WriteString
+    
+    push eax
+    call CalcGrade     ; AL에 학점 반환
+    call WriteChar
+    call Crlf
+    pop eax
+
+    loop L1
+    exit
+main ENDP
+END main
+
+-------------------------------------------------------------------
+4. College Registration
+-------------------------------------------------------------------
+; 6.11.2 - Exercise 4: College Registration
+INCLUDE Irvine32.inc
+
+.data
+promptGrade   BYTE "Enter grade average (0 - 400): ", 0
+promptCredits BYTE "Enter credits (1 - 30): ", 0
+errMsgCredits BYTE "Error: Credits must be between 1 and 30.", 0dh, 0ah, 0
+msgCanReg     BYTE "The student can register.", 0dh, 0ah, 0
+msgCannotReg  BYTE "The student cannot register.", 0dh, 0ah, 0
+
+gradeAverage  WORD ?
+credits       WORD ?
+
+.code
+main PROC
+    ; 성적 평점 입력
+    mov edx, OFFSET promptGrade
+    call WriteString
+    call ReadInt
+    mov gradeAverage, ax
+
+    ; 학점 수 입력
+    mov edx, OFFSET promptCredits
+    call WriteString
+    call ReadInt
+    mov credits, ax
+
+    ; 학점 수 범위 검사 (1 <= credits <= 30)
+    cmp ax, 1
+    jl InvalidCredits
+    cmp ax, 30
+    jg InvalidCredits
+    jmp EvaluateRegistration
+
+InvalidCredits:
+    mov edx, OFFSET errMsgCredits
+    call WriteString
+    jmp Quit
+
+EvaluateRegistration:
+    ; CMP와 조건 분기만을 이용한 수강신청 자격 판별:
+    ; 1) gradeAverage > 350 -> 가능
+    ; 2) gradeAverage > 250 AND credits <= 16 -> 가능
+    ; 3) credits <= 12 -> 가능
+    mov ax, gradeAverage
+    cmp ax, 350
+    jg CanRegister
+
+    cmp ax, 250
+    jle CheckCreditsOnly
+    mov bx, credits
+    cmp bx, 16
+    jle CanRegister
+
+CheckCreditsOnly:
+    mov bx, credits
+    cmp bx, 12
+    jle CanRegister
+
+CannotRegister:
+    mov edx, OFFSET msgCannotReg
+    call WriteString
+    jmp Quit
+
+CanRegister:
+    mov edx, OFFSET msgCanReg
+    call WriteString
+
+Quit:
+    exit
+main ENDP
+END main
+
+-------------------------------------------------------------------
+5. Boolean Calculator (1)
+-------------------------------------------------------------------
+; 6.11.2 - Exercise 5: Boolean Calculator (1)
+INCLUDE Irvine32.inc
+
+.data
+CaseTable BYTE '1'
+          DWORD Process_AND
+          BYTE '2'
+          DWORD Process_OR
+          BYTE '3'
+          DWORD Process_NOT
+          BYTE '4'
+          DWORD Process_XOR
+          BYTE '5'
+          DWORD Process_Exit
+EntrySize = (\$ - CaseTable)
+
+menu BYTE "-----------------------", 0dh, 0ah
+     BYTE "Boolean Calculator", 0dh, 0ah
+     BYTE "1. x AND y", 0dh, 0ah
+     BYTE "2. x OR y", 0dh, 0ah
+     BYTE "3. NOT x", 0dh, 0ah
+     BYTE "4. x XOR y", 0dh, 0ah
+     BYTE "5. Exit program", 0dh, 0ah
+     BYTE "Select a menu item: ", 0
+
+msgAND  BYTE "Selected: x AND y", 0dh, 0ah, 0
+msgOR   BYTE "Selected: x OR y", 0dh, 0ah, 0
+msgNOT  BYTE "Selected: NOT x", 0dh, 0ah, 0
+msgXOR  BYTE "Selected: x XOR y", 0dh, 0ah, 0
+msgExit BYTE "Exiting program...", 0dh, 0ah, 0
+
+.code
+main PROC
+MenuLoop:
+    call Crlf
+    mov edx, OFFSET menu
+    call WriteString
+    call ReadChar
+    call WriteChar
+    call Crlf
+
+    ; 테이블 드라이브 선택 방식 적용
+    mov ebx, OFFSET CaseTable
+    mov ecx, 5
+
+L1:
+    cmp al, [ebx]
+    jne L2
+    call NEAR PTR [ebx + 1]
+    cmp al, '5'
+    je Done
+    jmp MenuLoop
+
+L2:
+    add ebx, EntrySize
+    loop L1
+    jmp MenuLoop
+
+Done:
+    exit
+main ENDP
+
+Process_AND PROC
+    mov edx, OFFSET msgAND
+    call WriteString
+    ret
+Process_AND ENDP
+
+Process_OR PROC
+    mov edx, OFFSET msgOR
+    call WriteString
+    ret
+Process_OR ENDP
+
+Process_NOT PROC
+    mov edx, OFFSET msgNOT
+    call WriteString
+    ret
+Process_NOT ENDP
+
+Process_XOR PROC
+    mov edx, OFFSET msgXOR
+    call WriteString
+    ret
+Process_XOR ENDP
+
+Process_Exit PROC
+    mov edx, OFFSET msgExit
+    call WriteString
+    ret
+Process_Exit ENDP
+
+END main
+
+-------------------------------------------------------------------
+6. Boolean Calculator (2)
+-------------------------------------------------------------------
+; 6.11.2 - Exercise 6: Boolean Calculator (2)
+INCLUDE Irvine32.inc
+
+.data
+CaseTable BYTE '1'
+          DWORD AND_op
+          BYTE '2'
+          DWORD OR_op
+          BYTE '3'
+          DWORD NOT_op
+          BYTE '4'
+          DWORD XOR_op
+          BYTE '5'
+          DWORD Process_Exit
+EntrySize = (\$ - CaseTable)
+
+menu BYTE "-----------------------", 0dh, 0ah
+     BYTE "Boolean Calculator", 0dh, 0ah
+     BYTE "1. x AND y", 0dh, 0ah
+     BYTE "2. x OR y", 0dh, 0ah
+     BYTE "3. NOT x", 0dh, 0ah
+     BYTE "4. x XOR y", 0dh, 0ah
+     BYTE "5. Exit program", 0dh, 0ah
+     BYTE "Select a menu item: ", 0
+
+prompt1 BYTE "Enter first 32-bit hex integer x: ", 0
+prompt2 BYTE "Enter second 32-bit hex integer y: ", 0
+resMsg  BYTE "Result: ", 0
+msgExit BYTE "Exiting program...", 0dh, 0ah, 0
+
+.code
+main PROC
+MenuLoop:
+    call Crlf
+    mov edx, OFFSET menu
+    call WriteString
+    call ReadChar
+    call WriteChar
+    call Crlf
+
+    mov ebx, OFFSET CaseTable
+    mov ecx, 5
+
+L1:
+    cmp al, [ebx]
+    jne L2
+    call NEAR PTR [ebx + 1]
+    cmp al, '5'
+    je Done
+    jmp MenuLoop
+
+L2:
+    add ebx, EntrySize
+    loop L1
+    jmp MenuLoop
+
+Done:
+    exit
+main ENDP
+
+AND_op PROC
+    mov edx, OFFSET prompt1
+    call WriteString
+    call ReadHex
+    mov ebx, eax
+
+    mov edx, OFFSET prompt2
+    call WriteString
+    call ReadHex
+
+    and eax, ebx
+    mov edx, OFFSET resMsg
+    call WriteString
+    call WriteHex
+    call Crlf
+    ret
+AND_op ENDP
+
+OR_op PROC
+    mov edx, OFFSET prompt1
+    call WriteString
+    call ReadHex
+    mov ebx, eax
+
+    mov edx, OFFSET prompt2
+    call WriteString
+    call ReadHex
+
+    or eax, ebx
+    mov edx, OFFSET resMsg
+    call WriteString
+    call WriteHex
+    call Crlf
+    ret
+OR_op ENDP
+
+NOT_op PROC
+    mov edx, OFFSET prompt1
+    call WriteString
+    call ReadHex
+
+    not eax
+    mov edx, OFFSET resMsg
+    call WriteString
+    call WriteHex
+    call Crlf
+    ret
+NOT_op ENDP
+
+XOR_op PROC
+    mov edx, OFFSET prompt1
+    call WriteString
+    call ReadHex
+    mov ebx, eax**Assembly Language for x86 Processors (7th Edition)** 교재의 **Chapter 6.11 Programming Exercises (237~241페이지 / pdf 269페이지~)** 전체 문제(1번~10번) 풀이 코드입니다.
+
+메모장에 한 번에 복사해서 붙여넣을 수 있도록 하나의 코드 블록으로 작성했습니다. 코드 상단의 **[Copy]** 버튼을 클릭하여 복사하신 후 `.asm` 파일이나 메모장에 저장하여 사용하시기 바랍니다.
+
+```assembly
+===================================================================
+ [Assembly Language for x86 Processors 7th Edition]
+ Chapter 6.11 Programming Exercises (1 ~ 10) 전체 풀이
+===================================================================
+
+;===================================================================
+; 1. Filling an Array
+;===================================================================
+INCLUDE Irvine32.inc
+
+.data
+N1 = 10
+array1 DWORD N1 DUP(?)
+
+.code
+;-------------------------------------------------------------------
+; FillArray: j...k 범위의 무작위 정수로 N개 크기의 더블워드 배열을 채움
+; Receives: ESI = 배열 포인터, ECX = N, EBX = j (최소값), EDX = k (최대값)
+; Returns: 없음 (모든 레지스터 보존)
+;-------------------------------------------------------------------
+FillArray PROC USES eax ebx ecx edx esi
+    sub edx, ebx
+    inc edx            ; EDX = 범위 크기 (k - j + 1)
+L1:
+    mov eax, edx
+    call RandomRange   ; 0 ~ (k - j)
+    add eax, ebx       ; j ~ k 범위로 보정
+    mov [esi], eax
+    add esi, TYPE DWORD
+    loop L1
+    ret
+FillArray ENDP
+
+;===================================================================
+; 2. Summing Array Elements in a Range
+;===================================================================
+;-------------------------------------------------------------------
+; SumRange: 배열 요소 중 j...k 범위에 속하는 값들의 합계를 구함
+; Receives: ESI = 배열 포인터, ECX = 배열 크기, EBX = j, EDX = k
+; Returns: EAX = 범위 내 요소들의 합계
+;-------------------------------------------------------------------
+SumRange PROC USES ebx ecx edx esi edi
+    mov edi, 0         ; 누적 합계 저장
+L1:
+    mov eax, [esi]
+    cmp eax, ebx       ; j 이상인지 검사
+    jl Next
+    cmp eax, edx       ; k 이하인지 검사
+    jg Next
+    add edi, eax       ; 조건 만족 시 누적
+Next:
+    add esi, TYPE SDWORD
+    loop L1
+    mov eax, edi       ; 결과를 EAX로 반환
+    ret
+SumRange ENDP
+
+;===================================================================
+; 3. Test Score Evaluation
+;===================================================================
+;-------------------------------------------------------------------
+; CalcGrade: 0~100 점수를 받아 해당하는 성적 문자('A'~'F')를 반환
+; Receives: EAX = 점수 (0..100)
+; Returns: AL = 성적 문자 ('A', 'B', 'C', 'D', 'F')
+;-------------------------------------------------------------------
+CalcGrade PROC
+    cmp eax, 90
+    jge GradeA
+    cmp eax, 80
+    jge GradeB
+    cmp eax, 70
+    jge GradeC
+    cmp eax, 60
+    jge GradeD
+    mov al, 'F'
+    ret
+GradeA:
+    mov al, 'A'
+    ret
+GradeB:
+    mov al, 'B'
+    ret
+GradeC:
+    mov al, 'C'
+    ret
+GradeD:
+    mov al, 'D'
+    ret
+CalcGrade ENDP
+
+;===================================================================
+; 4. College Registration
+;===================================================================
+;-------------------------------------------------------------------
+; CollegeRegistration: 평점과 수강학점을 입력받아 등록 가능 여부를 판단
+;-------------------------------------------------------------------
+.data
+promptGrade   BYTE "Enter grade average (0 - 400): ", 0
+promptCredits BYTE "Enter credits (1 - 30): ", 0
+errMsgCredits BYTE "Error: Credits must be 1 to 30.", 0dh, 0ah, 0
+msgCanReg     BYTE "The student can register.", 0dh, 0ah, 0
+msgCannotReg  BYTE "The student cannot register.", 0dh, 0ah, 0
+
+.code
+CollegeRegistration PROC USES eax ebx edx
+    mov edx, OFFSET promptGrade
+    call WriteString
+    call ReadInt
+    mov ebx, eax       ; EBX = gradeAverage
+
+    mov edx, OFFSET promptCredits
+    call WriteString
+    call ReadInt        ; EAX = credits
+
+    ; 학점 범위 검사 (1 ~ 30)
+    cmp eax, 1
+    jl Invalid
+    cmp eax, 30
+    jg Invalid
+
+    ; 수강신청 조건 판단 (CMP & Jcond)
+    cmp ebx, 350
+    jg OK
+    cmp ebx, 250
+    jle CheckMin
+    cmp eax, 16
+    jle OK
+
+CheckMin:
+    cmp eax, 12
+    jle OK
+
+    mov edx, OFFSET msgCannotReg
+    call WriteString
+    ret
+
+OK:
+    mov edx, OFFSET msgCanReg
+    call WriteString
+    ret
+
+Invalid:
+    mov edx, OFFSET errMsgCredits
+    call WriteString
+    ret
+CollegeRegistration ENDP
+
+;===================================================================
+; 5. & 6. Boolean Calculator
+;===================================================================
+.data
+CalcMenu BYTE "-----------------------", 0dh, 0ah
+         BYTE "Boolean Calculator", 0dh, 0ah
+         BYTE "1. x AND y", 0dh, 0ah
+         BYTE "2. x OR y", 0dh, 0ah
+         BYTE "3. NOT x", 0dh, 0ah
+         BYTE "4. x XOR y", 0dh, 0ah
+         BYTE "5. Exit program", 0dh, 0ah
+         BYTE "Select a menu item: ", 0
+
+promptX  BYTE "Enter 32-bit hex integer x: ", 0
+promptY  BYTE "Enter 32-bit hex integer y: ", 0
+resHex   BYTE "Result: ", 0
+
+CaseTable BYTE '1'
+          DWORD AND_op
+          BYTE '2'
+          DWORD OR_op
+          BYTE '3'
+          DWORD NOT_op
+          BYTE '4'
+          DWORD XOR_op
+          BYTE '5'
+          DWORD Exit_op
+EntrySize = ($ - CaseTable)
+
+.code
+AND_op PROC
+    mov edx, OFFSET promptX
+    call WriteString
+    call ReadHex
+    mov ebx, eax
+    mov edx, OFFSET promptY
+    call WriteString
+    call ReadHex
+    and eax, ebx
+    mov edx, OFFSET resHex
+    call WriteString
+    call WriteHex
+    call Crlf
+    ret
+AND_op ENDP
+
+OR_op PROC
+    mov edx, OFFSET promptX
+    call WriteString
+    call ReadHex
+    mov ebx, eax
+    mov edx, OFFSET promptY
+    call WriteString
+    call ReadHex
+    or eax, ebx
+    mov edx, OFFSET resHex
+    call WriteString
+    call WriteHex
+    call Crlf
+    ret
+OR_op ENDP
+
+NOT_op PROC
+    mov edx, OFFSET promptX
+    call WriteString
+    call ReadHex
+    not eax
+    mov edx, OFFSET resHex
+    call WriteString
+    call WriteHex
+    call Crlf
+    ret
+NOT_op ENDP
+
+XOR_op PROC
+    mov edx, OFFSET promptX
+    call WriteString
+    call ReadHex
+    mov ebx, eax
+    mov edx, OFFSET promptY
+    call WriteString
+    call ReadHex
+    xor eax, ebx
+    mov edx, OFFSET resHex
+    call WriteString
+    call WriteHex
+    call Crlf
+    ret
+XOR_op ENDP
+
+Exit_op PROC
+    ret
+Exit_op ENDP
+
+;===================================================================
+; 7. Probabilistic Choice
+;===================================================================
+;-------------------------------------------------------------------
+; ProbabilisticChoice: 확률적 선택 구현 (예: A: 30%, B: 50%, C: 20%)
+;-------------------------------------------------------------------
+.data
+msgA BYTE "Generated: A", 0dh, 0ah, 0
+msgB BYTE "Generated: B", 0dh, 0ah, 0
+msgC BYTE "Generated: C", 0dh, 0ah, 0
+
+.code
+ProbabilisticChoice PROC USES eax edx
+    mov eax, 100
+    call RandomRange   ; 0 ~ 99
+    cmp eax, 30
+    jl PrintA
+    cmp eax, 80
+    jl PrintB
+
+    mov edx, OFFSET msgC
+    call WriteString
+    ret
+PrintA:
+    mov edx, OFFSET msgA
+    call WriteString
+    ret
+PrintB:
+    mov edx, OFFSET msgB
+    call WriteString
+    ret
+ProbabilisticChoice ENDP
+
+;===================================================================
+; 8. Message Encryption
+;===================================================================
+;-------------------------------------------------------------------
+; EncryptMessage: 다중 문자 키(Multi-character key)를 이용한 XOR 암호화
+; Receives: ESI = 메시지 버퍼, ECX = 메시지 길이, EDI = 키 버퍼, EDX = 키 길이
+;-------------------------------------------------------------------
+EncryptMessage PROC USES eax ebx ecx edx esi edi
+    push edx           ; 키 길이 보존
+    mov ebx, 0         ; 키 인덱스 초기화
+L1:
+    mov al, [edi + ebx]
+    xor [esi], al
+    inc esi
+    inc ebx
+    pop edx
+    push edx
+    cmp ebx, edx
+    jl NextByte
+    mov ebx, 0         ; 키 인덱스 순환
+NextByte:
+    loop L1
+    pop edx
+    ret
+EncryptMessage ENDP
+
+;===================================================================
+; 9. Validating a PIN
+;===================================================================
+;-------------------------------------------------------------------
+; Validate_PIN: 5자리 PIN 번호의 각 자릿수가 유효 범위 내인지 검사
+; Receives: ESI = 5바이트 PIN 배열 포인터
+; Returns: EAX = 유효하면 0, 오류 시 오류 위치 자릿수 (1..5)
+;-------------------------------------------------------------------
+.data
+minRange BYTE 5, 2, 4, 1, 3
+maxRange BYTE 9, 5, 8, 4, 6
+
+.code
+Validate_PIN PROC USES ebx ecx esi
+    mov ecx, 5
+    mov ebx, 0         ; 인덱스 0..4
+CheckLoop:
+    mov al, [esi + ebx]
+    cmp al, minRange[ebx]
+    jl ErrorFound
+    cmp al, maxRange[ebx]
+    jg ErrorFound
+    inc ebx
+    loop CheckLoop
+    mov eax, 0         ; 성공
+    ret
+ErrorFound:
+    mov eax, ebx
+    inc eax            ; 1 기반 자릿수 위치 반환
+    ret
+Validate_PIN ENDP
+
+;===================================================================
+; 10. Parity Checking
+;===================================================================
+;-------------------------------------------------------------------
+; CheckParity: 바이트 배열 전체의 비트 패리티 검사
+; Receives: ESI = 배열 포인터, ECX = 배열 바이트 크기
+; Returns: EAX = 짝수 패리티이면 1 (True), 홀수이면 0 (False)
+;-------------------------------------------------------------------
+CheckParity PROC USES ebx ecx esi
+    mov bl, 0          ; 패리티 누적용
+L1:
+    xor bl, [esi]
+    inc esi
+    loop L1
+
+    ; BL 패리티 검사
+    mov al, bl
+    xor al, 0          ; PF 플래그 설정
+    jp EvenParity
+    mov eax, 0         ; Odd Parity -> False
+    ret
+EvenParity:
+    mov eax, 1         ; Even Parity -> True
+    ret
+CheckParity ENDP
+
+;===================================================================
+; Main Procedure (전체 테스트 실행)
+;===================================================================
+.data
+msgValid   BYTE "PIN is Valid!", 0dh, 0ah, 0
+msgInvalid BYTE "PIN Invalid at digit: ", 0
+validPIN   BYTE 5, 2, 4, 1, 3
+invalidPIN BYTE 4, 3, 5, 3, 4
+
+.code
+main PROC
+    call Randomize
+
+    ; --- 1번 테스트 ---
+    mov esi, OFFSET array1
+    mov ecx, N1
+    mov ebx, -10
+    mov edx, 10
+    call FillArray
+
+    ; --- 2번 테스트 ---
+    mov esi, OFFSET array1
+    mov ecx, N1
+    mov ebx, -5
+    mov edx, 5
+    call SumRange      ; 결과는 EAX에 수록
+
+    ; --- 3번 테스트 ---
+    mov eax, 85
+    call CalcGrade     ; AL = 'B'
+
+    ; --- 9번 PIN 검사 테스트 ---
+    mov esi, OFFSET validPIN
+    call Validate_PIN
+    cmp eax, 0
+    jne BadPin
+    mov edx, OFFSET msgValid
+    call WriteString
+    jmp DonePin
+BadPin:
+    mov edx, OFFSET msgInvalid
+    call WriteString
+    call WriteDec
+    call Crlf
+DonePin:
+
+    exit
+main ENDP
+END main
+```
+
