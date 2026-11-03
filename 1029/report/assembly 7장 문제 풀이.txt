@@ -1,0 +1,320 @@
+
+-------------------------------------------------------------------
+1. Show the value of AL after each instruction:
+   a. mov al,0D4h / shr al,1 -> AL = 6Ah (01101010b, CF = 0)
+   b. mov al,0D4h / sar al,1 -> AL = EAh (11101010b, CF = 0)
+   c. mov al,0D4h / sar al,4 -> AL = FDh (11111101b, CF = 0)
+   d. mov al,0D4h / rol al,1 -> AL = A9h (10101001b, CF = 1)
+
+2. Show the value of AL after each instruction:
+   a. mov al,0D4h / ror al,3 -> AL = 9Ah (10011010b, CF = 1)
+   b. mov al,0D4h / rol al,7 -> AL = 6Ah (01101010b, CF = 1)
+   c. stc / mov al,0D4h / rcl al,1 -> AL = A9h (10101001b, CF = 1)
+   d. stc / mov al,0D4h / rcr al,3 -> AL = 3Ah (00111010b, CF = 1)
+
+3. Contents of AX and DX:
+   mov dx,0 / mov ax,222h / mov cx,100h / mul cx
+   - 답: AX = 2200h, DX = 0002h (결과: 00022200h)
+
+4. Contents of AX:
+   mov ax,63h / mov bl,10h / div bl
+   - 답: AL = 06h (몫), AH = 03h (나머지) -> AX = 0306h
+
+5. Contents of EAX and EDX:
+   mov eax,123400h / mov edx,0 / mov ebx,10h / div ebx
+   - 답: EAX = 00012340h (몫), EDX = 00000000h (나머지)
+
+6. Contents of AX and DX:
+   mov ax,4000h / mov dx,500h / mov bx,10h / div bx
+   - 답: Divide Overflow Error (나눗셈 피연산자가 AX 범위를 초과하여 CPU 예외 발생)
+
+7. Contents of BX:
+   mov bx,5 / stc / mov ax,60h / adc bx,ax
+   - 답: BX = 0066h (5 + 60h + 1)
+
+8. 64비트 모드 실행 결과:
+   dividend_hi QWORD 00000108h, dividend_lo QWORD 33300020h, divisor QWORD 00000100h
+   div divisor
+   - 답: RAX = 0000000108333000h (몫), RDX = 0000000000000020h (나머지)
+
+9. 오류 수정 (val2를 val1에서 빼는 프로그램):
+   [수정된 코드]
+   .data
+   val1   QWORD 20403004362047A1h
+   val2   QWORD 055210304A2630B2h
+   result QWORD 0
+   .code
+   mov  ecx, 8                   ; 8바이트 루프 카운터
+   mov  esi, OFFSET val1         ; OFFSET 사용
+   mov  edi, OFFSET val2
+   mov  ebx, OFFSET result       ; 결과를 저장할 오프셋
+   clc                           ; Carry flag 초기화
+
+   top:
+   mov  al, BYTE PTR [esi]
+   sbb  al, BYTE PTR [edi]       ; 바이트 단위 뺄셈 (SBB)
+   mov  BYTE PTR [ebx], al       ; 결과 저장
+   inc  esi                      ; 하위 바이트에서 상위 바이트로 이동
+   inc  edi
+   inc  ebx
+   loop top
+
+10. Hexadecimal contents of RAX in 64-bit mode:
+    imul rax, multiplicand, 4 (multiplicand = 0001020304050000h)
+    - 답: RAX = 0004080C10140000h
+
+7.9.2 Algorithm Workbench
+-------------------------------------------------------------------
+1. AX를 EAX로 부호 확장하는 시프트 명령어:
+   shl eax, 16
+   sar eax, 16
+
+2. 회전 명령어 없이 AL을 오른쪽으로 1비트 회전:
+   shr al, 1
+   jnc L1
+   or  al, 80h
+   L1:
+
+3. EAX에 16을 곱하는 논리 시프트:
+   shl eax, 4
+
+4. EBX를 4로 나누는 논리 시프트:
+   shr ebx, 2
+
+5. DL의 상위/하위 4비트(니블) 교환:
+   ror dl, 4
+
+6. AX의 최상위 비트를 DX의 최하위 비트로 시프트하고 DX를 왼쪽으로 1비트 이동:
+   shld dx, ax, 1
+
+7. 3바이트 메모리 오른쪽 1비트 시프트 (byteArray BYTE 81h, 20h, 33h):
+   shr byteArray+2, 1
+   rcr byteArray+1, 1
+   rcr byteArray, 1
+
+8. 3워드 메모리 왼쪽 1비트 시프트 (wordArray WORD 810Dh, 0C064h, 93ABh):
+   shl wordArray, 1
+   rcl wordArray+2, 1
+   rcl wordArray+4, 1
+
+9. -5 * 3을 계산하여 16비트 변수 val1에 저장:
+   mov ax, -5
+   mov bx, 3
+   imul bx
+   mov val1, ax
+
+10. -276 / 10을 계산하여 16비트 변수 val1에 저장:
+    mov ax, -276
+    cwd
+    mov bx, 10
+    idiv bx
+    mov val1, ax
+
+11. C++ 식 구현: val1 = (val2 * val3) / (val4 - 3) (32비트 부호 없는 정수)
+    mov eax, val2
+    mul val3             ; EDX:EAX = val2 * val3
+    mov ebx, val4
+    sub ebx, 3
+    div ebx              ; EAX = quotient
+    mov val1, eax
+
+12. C++ 식 구현: val1 = (val2 / val3) * (val1 + val2) (32비트 부호 있는 정수)
+    mov eax, val2
+    cdq                  ; EDX:EAX 부호 확장
+    idiv val3            ; EAX = val2 / val3
+    mov ebx, val1
+    add ebx, val2
+    imul eax, ebx
+    mov val1, eax
+
+13. AL로 전달된 8비트 부호 없는 정수(0~99)를 10진수로 출력하는 프로시저:
+    showDecimal8 PROC
+        aam              ; AH = 십의 자리, AL = 일의 자리
+        add ax, 3030h    ; ASCII 변환
+        push ax
+        mov al, ah
+        call WriteChar   ; 십의 자리 출력
+        pop ax
+        call WriteChar   ; 일의 자리 출력
+        ret
+    showDecimal8 ENDP
+
+14. AX = 0072h, AF = 1 상태에서 AAA 명령어 실행 결과:
+    - 답: AX = 0108h
+    - 해설: AF = 1 이므로 AAA는 AL에 6을 더해 (72h + 6 = 78h) 하위 니블 8을 추출하고, AH를 1 증가시켜 unpacked BCD 결과인 0108h (십진수 18)를 생성합니다.
+
+15. SUB, MOV, AND 만 사용하여 x = n mod y 계산 (y는 2의 거듭제곱):
+    mov eax, y
+    sub eax, 1         ; EAX = y - 1 (마스크 생성)
+    and eax, n         ; EAX = n AND (y - 1)
+    mov x, eax
+
+16. 조건 분기 없이 SAR, ADD, XOR만을 사용하여 EAX의 절대값 계산:
+    mov edx, eax
+    sar edx, 31        ; EAX < 0이면 EDX = 0FFFFFFFFh (-1), 양수면 0
+    xor eax, edx       ; 음수이면 1의 보수
+    sub eax, edx       ; 음수이면 +1 (subtracting -1)
+
+===================================================================
+[7.10 Programming Exercises]
+===================================================================
+
+1. Display ASCII Decimal (WriteScaled)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+.data
+DECIMAL_OFFSET = 5
+decimal_one BYTE "100123456789765", 0
+
+.code
+WriteScaled PROC USES eax ebx ecx edx esi
+    ; EDX = 문자열 오프셋, ECX = 문자열 길이, EBX = 소수점 위치
+    mov esi, edx
+    mov edx, ecx
+    sub edx, ebx        ; 소수점이 삽입될 인덱스 계산
+
+L1:
+    cmp edx, 0
+    jne PrintChar
+    push eax
+    mov al, '.'
+    call WriteChar
+    pop eax
+PrintChar:
+    mov al, [esi]
+    call WriteChar
+    inc esi
+    dec edx
+    loop L1
+    ret
+WriteScaled ENDP
+
+2. Extended Subtraction Procedure (Extended_Sub)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+.code
+Extended_Sub PROC USES eax ebx ecx edx esi edi
+    ; ESI = 피감수 포인터, EDI = 감수 포인터, EBX = 결과 포인터, ECX = 바이트 크기
+    clc                 ; Borrow(Carry) 초기화
+L1:
+    mov al, [esi]
+    sbb al, [edi]       ; 빌림을 포함한 뺄셈
+    mov [ebx], al
+    inc esi
+    inc edi
+    inc ebx
+    loop L1
+    ret
+Extended_Sub ENDP
+
+3. Packed Decimal Conversion (PackedToAsc)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+.code
+PackedToAsc PROC USES eax ebx ecx esi edi
+    ; ESI = 4바이트 압축 BCD 포인터, EDI = ASCII 버퍼 포인터 (9바이트 이상)
+    mov ecx, 4
+    add esi, 3          ; Big-Endian 순서 처리를 위해 상위 바이트부터 진행
+L1:
+    mov al, [esi]
+    mov bl, al
+    shr al, 4           ; 상위 니블
+    or  al, 30h         ; ASCII 변환
+    mov [edi], al
+    inc edi
+
+    mov al, bl
+    and al, 0Fh         ; 하위 니블
+    or  al, 30h         ; ASCII 변환
+    mov [edi], al
+    inc edi
+
+    dec esi
+    loop L1
+    mov BYTE PTR [edi], 0 ; Null 종단자
+    ret
+PackedToAsc ENDP
+
+4. Greatest Common Divisor (GCD)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+.code
+GCD PROC USES ebx edx
+    ; Receives: EAX = x, EBX = y
+    ; Returns:  EAX = gcd(x, y)
+    cmp eax, 0
+    jge L1
+    neg eax             ; abs(x)
+L1:
+    cmp ebx, 0
+    jge L2
+    neg ebx             ; abs(y)
+L2:
+    cmp ebx, 0
+    je Done
+
+L_Loop:
+    mov edx, 0
+    div ebx             ; EDX = x % y, EAX = x / y
+    mov eax, ebx        ; x = y
+    mov ebx, edx        ; y = n
+    cmp ebx, 0
+    jg L_Loop
+
+Done:
+    ret
+GCD ENDP
+
+5. Bitwise Multiplication (BitwiseMultiply)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+.code
+BitwiseMultiply PROC USES ebx ecx edx
+    ; Receives: EAX = 피승수(multiplicand), EBX = 승수(multiplier)
+    ; Returns:  EAX = 곱(product)
+    mov edx, eax        ; EDX = 피승수
+    mov eax, 0          ; EAX = 누적합 (0으로 초기화)
+
+L1:
+    cmp ebx, 0
+    je Done
+    shr ebx, 1          ; 승수의 LSB 검사
+    jnc L2
+    add eax, edx        ; LSB가 1이면 누적합에 추가
+L2:
+    shl edx, 1          ; 피승수 시프트
+    jmp L1
+
+Done:
+    ret
+BitwiseMultiply ENDP
+
+6. Add Packed Decimal Integers (AddPacked)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+.code
+AddPacked PROC USES eax ebx ecx edx esi edi
+    ; ESI = 첫 번째 수, EDI = 두 번째 수, EDX = 합계 저장소, ECX = 바이트 크기
+    clc                 ; Carry 초기화
+L1:
+    mov al, [esi]
+    adc al, [edi]       ; Carry 포함 덧셈
+    daa                 ; 압축 BCD 덧셈 보정
+    mov [edx], al
+    inc esi
+    inc edi
+    inc edx
+    loop L1
+    ret
+AddPacked ENDP
+
+main PROC
+    exit
+main ENDP
+END main
