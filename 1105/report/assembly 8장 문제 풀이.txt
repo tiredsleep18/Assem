@@ -1,0 +1,664 @@
+
+
+[8.10 Review Questions and Exercises]
+
+8.10.1 Short Answer
+-------------------------------------------------------------------
+1. Which statements belong in a procedure’s epilogue when the procedure has stack parameters and local variables?
+   - 답: 
+     mov esp, ebp  (또는 leave)
+     pop ebp
+     ret [N]
+
+2. When a C function returns a 32-bit integer, where is the return value stored?
+   - 답: EAX 레지스터
+
+3. How does a program using the STDCALL calling convention clean up the stack after a procedure call?
+   - 답: 피호출 프로시저(Callee)가 종료 시 `RET N` 명령어를 실행하여 스택 매개변수를 해제합니다 (N = 매개변수의 총 바이트 수).
+
+4. How is the LEA instruction more powerful than the OFFSET operator?
+   - 답: OFFSET 연산자는 컴파일 시점에 결정되는 정적 메모리 주소만 가져올 수 있지만, LEA 지시어는 런타임에 동적으로 계산되는 스택 내 지역 변수나 간접 메모리 주소(예: `[ebp-4]`)의 오프셋을 계산하여 로드할 수 있습니다.
+
+5. In the C++ example shown in Section 8.2.3, how much stack space is used by a variable of type int?
+   - 답: 4바이트
+
+6. What advantages might the C calling convention have over the STDCALL calling convention?
+   - 답: 호출자(Caller)가 스택을 정리하므로 `printf`와 같이 매개변수의 개수가 가변적인(variable number of arguments) 함수를 구현할 수 있습니다.
+
+7. (True/False): When using the PROC directive, all parameters must be listed on the same line.
+   - 답: False (쉼표 및 줄바꿈 문자를 사용하여 여러 줄에 나누어 선언할 수 있습니다).
+
+8. (True/False): If you pass a variable containing the offset of an array of bytes to a procedure that expects a pointer to an array of words, the assembler will flag this as an error.
+   - 답: False (오프셋 주소는 단순 32비트 정수 값이므로 어셈블러는 포인터의 데이터 타입 불일치를 구문 오류로 지적하지 않습니다).
+
+9. (True/False): If you pass an immediate value to a procedure that expects a reference parameter, you can generate a general-protection fault.
+   - 답: True (프로시저가 즉시값을 메모리 주소로 해석하여 역참조(dereference)를 시도할 때 메모리 보호 오류(General Protection Fault)가 발생할 수 있습니다).
+
+8.10.2 Algorithm Workbench
+-------------------------------------------------------------------
+1. AddThree 호출 후 EBP 푸시 직후의 스택 프레임 구조:
+   [ebp + 16] : 10h (3번째 매개변수)
+   [ebp + 12] : 20h (2번째 매개변수)
+   [ebp + 8]  : 30h (1번째 매개변수)
+   [ebp + 4]  : 복귀 주소 (Return Address)
+   [ebp + 0]  : 이전 EBP 값 (Saved EBP)  <-- ESP, EBP 포인터 위치
+
+2. 세 매개변수의 합을 계산하여 EAX로 반환하는 AddThree 프로시저:
+   AddThree PROC,
+       param1:DWORD, param2:DWORD, param3:DWORD
+       mov eax, param1
+       add eax, param2
+       add eax, param3
+       ret
+   AddThree ENDP
+
+3. DWORD 배열 포인터 지역변수 pArray 선언:
+   LOCAL pArray:PTR DWORD
+
+4. 20바이트 크기의 바이트 배열 지역변수 buffer 선언:
+   LOCAL buffer:BYTE
+
+5. 16비트 부호 없는 정수 포인터 지역변수 pwArray 선언:
+   LOCAL pwArray:PTR WORD
+
+6. 8비트 부호 있는 정수 지역변수 myByte 선언:
+   LOCAL myByte:SBYTE
+
+7. 20개 더블워드 크기의 배열 지역변수 myArray 선언:
+   LOCAL myArray:DWORD
+
+8. forecolor와 backcolor를 받아 SetTextColor를 호출하는 SetColor 프로시저:
+   SetColor PROC,
+       forecolor:DWORD, backcolor:DWORD
+       mov eax, backcolor
+       shl eax, 4
+       add eax, forecolor
+       call SetTextColor
+       ret
+   SetColor ENDP
+
+9. 지정된 색상으로 단일 문자를 출력하는 WriteColorChar 프로시저:
+   WriteColorChar PROC,
+       char:BYTE, forecolor:DWORD, backcolor:DWORD
+       mov eax, backcolor
+       shl eax, 4
+       add eax, forecolor
+       call SetTextColor
+       mov al, char
+       call WriteChar
+       ret
+   WriteColorChar ENDP
+
+10. Irvine32의 DumpMem을 캡슐화하는 DumpMemory 프로시저:
+    DumpMemory PROC USES ebx ecx esi,
+        ptrArray:PTR DWORD, szArray:DWORD, typeArray:DWORD
+        mov esi, ptrArray
+        mov ecx, szArray
+        mov ebx, typeArray
+        call DumpMem
+        ret
+    DumpMemory ENDP
+
+11. 두 배열 요소의 곱셈을 수행하는 MultArray PROTO 및 PROC 선언:
+    MultArray PROTO,
+        ptrArray1:PTR DWORD, ptrArray2:PTR DWORD, count:DWORD
+
+    MultArray PROC USES eax ebx ecx esi edi,
+        ptrArray1:PTR DWORD, ptrArray2:PTR DWORD, count:DWORD
+        mov esi, ptrArray1
+        mov edi, ptrArray2
+        mov ecx, count
+        cmp ecx, 0
+        je Done
+    L1:
+        mov eax, [esi]
+        mov ebx, [edi]
+        mul ebx
+        mov [esi], eax
+        add esi, 4
+        add edi, 4
+        loop L1
+    Done:
+        ret
+    MultArray ENDP
+
+===================================================================
+[8.11 Programming Exercises]
+===================================================================
+
+1. FindLargest Procedure
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+FindLargest PROTO, ptrArray:PTR SDWORD, szArray:DWORD
+
+.data
+array1 SDWORD -10, 20, 5, -30, 15
+array2 SDWORD -50, -20, -3, -100
+array3 SDWORD 100, 250, 400, 50, 300, 120
+
+.code
+FindLargest PROC USES ebx ecx esi,
+    ptrArray:PTR SDWORD, szArray:DWORD
+    mov esi, ptrArray
+    mov ecx, szArray
+    mov eax, [esi]       ; 첫 번째 요소를 최대값으로 초기화
+    add esi, 4
+    dec ecx
+    cmp ecx, 0
+    jle Done
+
+L1:
+    mov ebx, [esi]
+    cmp ebx, eax
+    jle Next
+    mov eax, ebx         ; 더 큰 값 발견 시 갱신
+Next:
+    add esi, 4
+    loop L1
+
+Done:
+    ret
+FindLargest ENDP
+
+main PROC
+    INVOKE FindLargest, ADDR array1, LENGTHOF array1
+    call WriteInt        ; 20 출력
+    call Crlf
+
+    INVOKE FindLargest, ADDR array2, LENGTHOF array2
+    call WriteInt        ; -3 출력
+    call Crlf
+
+    INVOKE FindLargest, ADDR array3, LENGTHOF array3
+    call WriteInt        ; 400 출력
+    call Crlf
+
+    exit
+main ENDP
+END main
+
+2. Chess Board
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+DrawSquare PROTO, row:BYTE, col:BYTE, color:DWORD
+
+.code
+DrawSquare PROC USES eax edx, row:BYTE, col:BYTE, color:DWORD
+    mov dh, row
+    mov dl, col
+    call Gotoxy
+    mov eax, color
+    call SetTextColor
+    mov al, ' '
+    call WriteChar
+    call WriteChar
+    ret
+DrawSquare ENDP
+
+DrawBoard PROC USES ecx edx, backColor:DWORD
+    mov dh, 0            ; 행 (0..7)
+L_Row:
+    mov dl, 0            ; 열 (0..7)
+L_Col:
+    mov al, dh
+    add al, dl
+    test al, 1
+    jnz WhiteSq
+    ; 교차 칸
+    mov al, dl
+    shl al, 1            ; 가로 2칸 넓이 보정
+    INVOKE DrawSquare, dh, al, backColor
+    jmp NextCol
+WhiteSq:
+    mov al, dl
+    shl al, 1
+    INVOKE DrawSquare, dh, al, (white * 16)
+NextCol:
+    inc dl
+    cmp dl, 8
+    jl L_Col
+
+    inc dh
+    cmp dh, 8
+    jl L_Row
+    ret
+DrawBoard ENDP
+
+main PROC
+    call Clrscr
+    INVOKE DrawBoard, (gray * 16)
+    mov dh, 10
+    mov dl, 0
+    call Gotoxy
+    exit
+main ENDP
+END main
+
+3. Chess Board with Alternating Colors
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+DrawSquare PROTO, row:BYTE, col:BYTE, color:DWORD
+DrawBoard PROTO, backColor:DWORD
+
+.code
+DrawSquare PROC USES eax edx, row:BYTE, col:BYTE, color:DWORD
+    mov dh, row
+    mov dl, col
+    call Gotoxy
+    mov eax, color
+    call SetTextColor
+    mov al, ' '
+    call WriteChar
+    call WriteChar
+    ret
+DrawSquare ENDP
+
+DrawBoard PROC USES ecx edx, backColor:DWORD
+    mov dh, 0
+L_Row:
+    mov dl, 0
+L_Col:
+    mov al, dh
+    add al, dl
+    test al, 1
+    jnz WhiteSq
+    mov al, dl
+    shl al, 1
+    INVOKE DrawSquare, dh, al, backColor
+    jmp NextCol
+WhiteSq:
+    mov al, dl
+    shl al, 1
+    INVOKE DrawSquare, dh, al, (white * 16)
+NextCol:
+    inc dl
+    cmp dl, 8
+    jl L_Col
+
+    inc dh
+    cmp dh, 8
+    jl L_Row
+    ret
+DrawBoard ENDP
+
+main PROC
+    mov ecx, 16          ; 16가지 배경색 순회
+    mov ebx, 0
+
+L1:
+    push ecx
+    mov eax, ebx
+    shl eax, 4           ; 배경색 위치로 시프트
+    INVOKE DrawBoard, eax
+    mov eax, 500
+    call Delay           ; 500ms 대기
+    inc ebx
+    pop ecx
+    loop L1
+
+    mov eax, (black * 16) + white
+    call SetTextColor
+    call Clrscr
+    exit
+main ENDP
+END main
+
+4. FindThrees Procedure
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+FindThrees PROTO, ptrArray:PTR DWORD, szArray:DWORD
+
+.data
+arr1 DWORD 1, 2, 3, 3, 3, 4, 5
+arr2 DWORD 3, 3, 1, 3, 3, 2
+arr3 DWORD 3, 3, 3
+
+.code
+FindThrees PROC USES ebx ecx esi,
+    ptrArray:PTR DWORD, szArray:DWORD
+    mov esi, ptrArray
+    mov ecx, szArray
+    cmp ecx, 3
+    jl NotFound
+
+    sub ecx, 2           ; 3연속 검사 루프 횟수
+
+L1:
+    mov eax, [esi]
+    cmp eax, 3
+    jne Next
+    mov eax, [esi + 4]
+    cmp eax, 3
+    jne Next
+    mov eax, [esi + 8]
+    cmp eax, 3
+    jne Next
+    mov eax, 1           ; 연속 3개 '3' 발견
+    ret
+
+Next:
+    add esi, 4
+    loop L1
+
+NotFound:
+    mov eax, 0
+    ret
+FindThrees ENDP
+
+main PROC
+    INVOKE FindThrees, ADDR arr1, LENGTHOF arr1
+    call WriteDec        ; 1 출력
+    call Crlf
+
+    INVOKE FindThrees, ADDR arr2, LENGTHOF arr2
+    call WriteDec        ; 0 출력
+    call Crlf
+
+    INVOKE FindThrees, ADDR arr3, LENGTHOF arr3
+    call WriteDec        ; 1 출력
+    call Crlf
+
+    exit
+main ENDP
+END main
+
+5. DifferentInputs Procedure
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+DifferentInputs PROTO, v1:DWORD, v2:DWORD, v3:DWORD
+
+.code
+DifferentInputs PROC,
+    v1:DWORD, v2:DWORD, v3:DWORD
+    mov eax, v1
+    cmp eax, v2
+    je SameFound
+    cmp eax, v3
+    je SameFound
+    mov eax, v2
+    cmp eax, v3
+    je SameFound
+
+    mov eax, 1           ; 모두 다름
+    ret
+
+SameFound:
+    mov eax, 0           ; 중복 존재
+    ret
+DifferentInputs ENDP
+
+main PROC
+    INVOKE DifferentInputs, 10, 20, 30
+    call WriteDec        ; 1
+    call Crlf
+
+    INVOKE DifferentInputs, 10, 10, 30
+    call WriteDec        ; 0
+    call Crlf
+
+    INVOKE DifferentInputs, 10, 20, 20
+    call WriteDec        ; 0
+    call Crlf
+
+    INVOKE DifferentInputs, 10, 20, 10
+    call WriteDec        ; 0
+    call Crlf
+
+    INVOKE DifferentInputs, 5, 6, 7
+    call WriteDec        ; 1
+    call Crlf
+
+    exit
+main ENDP
+END main
+
+6. Exchanging Integers
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+Swap PROTO, pValX:PTR DWORD, pValY:PTR DWORD
+
+.data
+array DWORD 10h, 20h, 30h, 40h, 50h, 60h
+
+.code
+main PROC
+    mov esi, OFFSET array
+    mov ecx, LENGTHOF array / 2
+
+L1:
+    push ecx
+    mov edi, esi
+    add edi, 4
+    INVOKE Swap, esi, edi
+    add esi, 8
+    pop ecx
+    loop L1
+
+    ; 배열 결과 확인 (20h, 10h, 40h, 30h, 60h, 50h)
+    mov esi, OFFSET array
+    mov ecx, LENGTHOF array
+PrintLoop:
+    mov eax, [esi]
+    call WriteHex
+    mov al, ' '
+    call WriteChar
+    add esi, 4
+    loop PrintLoop
+    call Crlf
+
+    exit
+main ENDP
+END main
+
+7. Greatest Common Divisor (Recursive)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+GCD PROTO, x:SDWORD, y:SDWORD
+
+.code
+GCD PROC USES ebx edx,
+    x:SDWORD, y:SDWORD
+
+    mov eax, x
+    cmp eax, 0
+    jge CheckY
+    neg eax              ; abs(x)
+CheckY:
+    mov ebx, y
+    cmp ebx, 0
+    jge CheckZero
+    neg ebx              ; abs(y)
+
+CheckZero:
+    cmp ebx, 0
+    je BaseCase
+
+    mov edx, 0
+    div ebx              ; EDX = x % y
+    INVOKE GCD, ebx, edx ; Recursive call: GCD(y, x % y)
+    ret
+
+BaseCase:
+    ret                  ; EAX = abs(x) 반환
+GCD ENDP
+
+main PROC
+    INVOKE GCD, 5, 20
+    call WriteDec        ; 5
+    call Crlf
+
+    INVOKE GCD, 24, 18
+    call WriteDec        ; 6
+    call Crlf
+
+    INVOKE GCD, 11, 7
+    call WriteDec        ; 1
+    call Crlf
+
+    INVOKE GCD, 432, 226
+    call WriteDec        ; 2
+    call Crlf
+
+    INVOKE GCD, 26, 13
+    call WriteDec        ; 13
+    call Crlf
+
+    exit
+main ENDP
+END main
+
+8. Counting Matching Elements
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+CountMatches PROTO, ptrArr1:PTR SDWORD, ptrArr2:PTR SDWORD, szArr:DWORD
+
+.data
+arr1 SDWORD 10, 20, 30, 40, 50
+arr2 SDWORD 10, 25, 30, 45, 50
+
+.code
+CountMatches PROC USES ebx ecx esi edi,
+    ptrArr1:PTR SDWORD, ptrArr2:PTR SDWORD, szArr:DWORD
+
+    mov esi, ptrArr1
+    mov edi, ptrArr2
+    mov ecx, szArr
+    mov eax, 0           ; 일치 개수 초기화
+
+    cmp ecx, 0
+    je Done
+
+L1:
+    mov ebx, [esi]
+    cmp ebx, [edi]
+    jne Next
+    inc eax
+Next:
+    add esi, 4
+    add edi, 4
+    loop L1
+
+Done:
+    ret
+CountMatches ENDP
+
+main PROC
+    INVOKE CountMatches, ADDR arr1, ADDR arr2, LENGTHOF arr1
+    call WriteDec        ; 3 출력 (10, 30, 50)
+    call Crlf
+    exit
+main ENDP
+END main
+
+9. Counting Nearly Matching Elements
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+CountNearMatches PROTO, ptrArr1:PTR SDWORD, ptrArr2:PTR SDWORD, szArr:DWORD, diff:DWORD
+
+.data
+arr1 SDWORD 10, 20, 30, 40, 50
+arr2 SDWORD 12, 25, 31, 45, 53
+
+.code
+CountNearMatches PROC USES ebx edx ecx esi edi,
+    ptrArr1:PTR SDWORD, ptrArr2:PTR SDWORD, szArr:DWORD, diff:DWORD
+
+    mov esi, ptrArr1
+    mov edi, ptrArr2
+    mov ecx, szArr
+    mov eax, 0           ; 유사 일치 개수
+
+    cmp ecx, 0
+    je Done
+
+L1:
+    mov ebx, [esi]
+    sub ebx, [edi]       ; ebx = x_i - y_i
+    jge CheckDiff
+    neg ebx              ; abs(x_i - y_i)
+
+CheckDiff:
+    cmp ebx, diff
+    jg Next
+    inc eax
+Next:
+    add esi, 4
+    add edi, 4
+    loop L1
+
+Done:
+    ret
+CountNearMatches ENDP
+
+main PROC
+    INVOKE CountNearMatches, ADDR arr1, ADDR arr2, LENGTHOF arr1, 2
+    call WriteDec        ; 2 출력 (12-10=2, 31-30=1)
+    call Crlf
+    exit
+main ENDP
+END main
+
+10. Show Procedure Parameters
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+ShowParams PROTO, paramCount:DWORD
+
+.data
+hdrStr BYTE "Stack parameters:", 0dh, 0ah
+       BYTE "---------------------------", 0dh, 0ah, 0
+addrStr BYTE "Address ", 0
+eqStr   BYTE " = ", 0
+
+.code
+ShowParams PROC USES eax ebx ecx edx esi,
+    paramCount:DWORD
+
+    mov edx, OFFSET hdrStr
+    call WriteString
+
+    mov ebx, ebp
+    add ebx, 12          ; 첫 번째 매개변수 오프셋 위치 [ebp + 12] (ShowParams의 매개변수를 건너뜀)
+    mov ecx, paramCount
+
+L1:
+    mov edx, OFFSET addrStr
+    call WriteString
+
+    mov eax, ebx
+    call WriteHex        ; 스택 주소 출력
+
+    mov edx, OFFSET eqStr
+    call WriteString
+
+    mov eax, [ebx]
+    call WriteHex        ; 스택에 저장된 매개변수 값 출력
+    call Crlf
+
+    add ebx, 4           ; 다음 매개변수로 이동 (낮은 주소 -> 높은 주소)
+    loop L1
+
+    ret
+ShowParams ENDP
+
+MySample PROC first:DWORD, second:DWORD, third:DWORD
+    INVOKE ShowParams, 3
+    ret
+MySample ENDP
+
+main PROC
+    INVOKE MySample, 1234h, 5000h, 6543h
+    exit
+main ENDP
+END main
+
+```
