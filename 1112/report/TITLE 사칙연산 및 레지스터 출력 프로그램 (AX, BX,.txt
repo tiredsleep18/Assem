@@ -1,0 +1,157 @@
+TITLE 사칙연산 및 레지스터 출력 프로그램 (AX, BX, CX, DX)
+
+INCLUDE Irvine32.inc
+
+.data
+    msgNum1     BYTE "첫 번째 숫자를 입력하세요: ", 0
+    msgNum2     BYTE "두 번째 숫자를 입력하세요: ", 0
+
+    msgAdd      BYTE "덧셈 (A + B) = ", 0
+    msgSub      BYTE "뺄셈 (A - B) = ", 0
+    msgMul      BYTE "곱셈 (A * B) = ", 0
+    msgDivQ     BYTE "나눗셈 몫 (A / B) = ", 0
+    msgDivR     BYTE ", 나머지 = ", 0
+    msgDivZero  BYTE "나눗셈 오류: 0으로 나눌 수 없습니다.", 0
+
+    msgRegHdr   BYTE 0Dh, 0Ah, "=== 주요 16비트 레지스터 상태 (16진수) ===", 0Dh, 0Ah, 0
+    msgAX       BYTE "AX = ", 0
+    msgBX       BYTE "BX = ", 0
+    msgCX       BYTE "CX = ", 0
+    msgDX       BYTE "DX = ", 0
+
+    num1        DWORD ?
+    num2        DWORD ?
+
+    regAX       WORD ?
+    regBX       WORD ?
+    regCX       WORD ?
+    regDX       WORD ?
+
+.code
+main PROC
+    ; 1. 두 숫자 입력 받기
+    mov edx, OFFSET msgNum1
+    call WriteString
+    call ReadInt
+    mov num1, eax
+
+    mov edx, OFFSET msgNum2
+    call WriteString
+    call ReadInt
+    mov num2, eax
+
+    call Crlf
+
+    ; ---------------------------------------------------------
+    ; 2. 덧셈 (AX에 결과 저장)
+    ; ---------------------------------------------------------
+    mov eax, num1
+    add eax, num2
+    mov regAX, ax               ; 덧셈 결과 레지스터 기록용
+
+    mov edx, OFFSET msgAdd
+    call WriteString
+    movsx eax, ax
+    call WriteInt
+    call Crlf
+
+    ; ---------------------------------------------------------
+    ; 3. 뺄셈 (BX에 결과 저장)
+    ; ---------------------------------------------------------
+    mov eax, num1
+    sub eax, num2
+    mov regBX, ax               ; 뺄셈 결과 레지스터 기록용
+
+    mov edx, OFFSET msgSub
+    call WriteString
+    movsx eax, ax
+    call WriteInt
+    call Crlf
+
+    ; ---------------------------------------------------------
+    ; 4. 곱셈 (CX에 하위 16비트 결과 저장)
+    ; 16비트 곱셈(imul bx): DX:AX에 32비트 결과 저장
+    ; ---------------------------------------------------------
+    mov eax, num1
+    mov ebx, num2
+    imul bx                     ; AX * BX -> DX:AX
+    mov regCX, ax               ; 곱셈 결과(하위 16비트) 기록용
+
+    mov edx, OFFSET msgMul
+    call WriteString
+    movsx eax, ax
+    call WriteInt
+    call Crlf
+
+    ; ---------------------------------------------------------
+    ; 5. 나눗셈 (DX에 나머지, AX에 몫 저장)
+    ; 16비트 부호 있는 나눗셈(idiv bx): DX:AX / BX -> 몫은 AX, 나머지는 DX
+    ; ---------------------------------------------------------
+    mov eax, num2
+    cmp eax, 0
+    je DivByZeroError
+
+    mov eax, num1
+    cwd                         ; AX의 부호를 DX로 확장 (DX:AX)
+    mov ebx, num2
+    idiv bx                     ; DX:AX / BX -> 몫: AX, 나머지: DX
+
+    mov regAX, ax               ; 최종 몫을 AX 값으로 기록
+    mov regDX, dx               ; 최종 나머지를 DX 값으로 기록
+
+    mov edx, OFFSET msgDivQ
+    call WriteString
+    movsx eax, ax
+    call WriteInt
+
+    mov edx, OFFSET msgDivR
+    call WriteString
+    movsx eax, dx
+    call WriteInt
+    call Crlf
+    jmp PrintRegisters
+
+DivByZeroError:
+    mov edx, OFFSET msgDivZero
+    call WriteString
+    call Crlf
+    mov regDX, 0
+
+    ; ---------------------------------------------------------
+    ; 6. AX, BX, CX, DX 레지스터 내용 출력
+    ; ---------------------------------------------------------
+PrintRegisters:
+    mov edx, OFFSET msgRegHdr
+    call WriteString
+
+    ; AX 출력
+    mov edx, OFFSET msgAX
+    call WriteString
+    movzx eax, regAX
+    call WriteHex
+    call Crlf
+
+    ; BX 출력
+    mov edx, OFFSET msgBX
+    call WriteString
+    movzx eax, regBX
+    call WriteHex
+    call Crlf
+
+    ; CX 출력
+    mov edx, OFFSET msgCX
+    call WriteString
+    movzx eax, regCX
+    call WriteHex
+    call Crlf
+
+    ; DX 출력
+    mov edx, OFFSET msgDX
+    call WriteString
+    movzx eax, regDX
+    call WriteHex
+    call Crlf
+
+    exit
+main ENDP
+END main
