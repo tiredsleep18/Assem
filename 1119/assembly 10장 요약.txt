@@ -1,0 +1,131 @@
+선택하신 **`10. Structures and Macros.pdf`** 소스 파일의 내용을 확인했습니다.
+
+요청하신 대로 아래의 하나의 코드 블록으로 요약 및 예제 코드를 정리해 드립니다. 상단의 **[Copy]** 버튼을 누르시면 메모장에 한 번에 복사해서 붙여넣으실 수 있습니다.
+
+```text
+===================================================================
+     [10. Structures and Macros.pdf] 핵심 요약 및 코드 노트
+===================================================================
+
+1. 구조체 (Structures - STRUCT / ENDS)
+-------------------------------------------------------------------
+- 개념: 논리적으로 연관된 변수들의 집합을 하나의 템플릿으로 정의하는 데이터 구조체입니다. 구조체 내부의 변수들을 필드(Field)라고 부릅니다.
+- 정의 방식: STRUCT와 ENDS 지시어를 사용하여 정의합니다.
+  * 미초기화(?), 문자열, 정수, DUP 배열 등으로 필드 초기값을 설정할 수 있습니다.
+- 메모리 정렬 (ALIGN): 데이터 타입에 맞게 필드를 정렬하여 CPU의 메모리 I/O 성능을 최적화합니다.
+- 변수 선언 및 초기화: `<>`(기본 초기값 사용) 또는 `<초기값, ...>`을 사용하여 구조체 변수를 선언합니다.
+- 필드 참조 및 오프셋 접근:
+  * 직접 참조: `변수명.필드명` 형태로 접근합니다.
+  * 타입 및 크기 확인: TYPE, SIZEOF, LENGTHOF 연산자를 사용합니다.
+  * 간접 주소 지정: 레지스터와 PTR 연산자를 함께 사용하여 접근합니다 (예: `(Employee PTR [esi]).Years`).
+- 중첩 구조체: 구조체 필드 내에 다른 구조체 인스턴스를 포함시킬 수 있습니다.
+
+/* 예제 코드: 구조체 정의, 변수 선언 및 간접 접근 */
+; 구조체 정의
+Employee STRUCT
+    IdNum       BYTE "000000000"
+    LastName    BYTE 30 DUP(0)
+    ALIGN       WORD
+    Years       WORD 0
+    ALIGN       DWORD
+    SalaryHistory DWORD 0, 0, 0, 0
+Employee ENDS
+
+; 중첩 구조체 정의
+Rectangle STRUCT
+    UpperLeft  COORD <>
+    LowerRight COORD <>
+Rectangle ENDS
+
+.data
+worker Employee <>                       ; 기본 초기값으로 선언
+rect1  Rectangle <{10,10}, {50,20}>      ; 중첩 구조체 초기화
+
+.code
+; 간접 주소 지정을 통한 구조체 접근
+mov esi, OFFSET worker
+mov ax, (Employee PTR [esi]).Years       ; ESI 레지스터를 통한 필드 접근
+
+mov esi, OFFSET rect1
+mov (Rectangle PTR [esi]).UpperLeft.Y, 10 ; 중첩 구조체 필드 접근
+
+2. 공용체 (Unions - UNION / ENDS)
+-------------------------------------------------------------------
+- 개념: 모든 필드가 동일한 시작 메모리 오프셋(Offset 0)을 공유하는 데이터 구조입니다.
+- 메모리 크기: 공용체의 전체 크기는 가장 크기가 큰 필드의 길이에 맞춰집니다.
+- 초기화 제약: 공용체 변수 선언 시 초기값은 최대 1개만 허용됩니다.
+
+/* 예제 코드: 공용체 정의 및 사용 */
+Integer UNION
+    D DWORD 0
+    W WORD  0
+    B BYTE  0
+Integer ENDS
+
+.data
+myInt Integer <12345678h>                ; 1개의 초기값 지정
+
+.code
+mov al, myInt.B                          ; 하위 1바이트 접근
+mov ax, myInt.W                          ; 하위 2바이트 접근
+mov eax, myInt.D                         ; 4바이트 전체 접근
+
+3. 매크로 (Macros - MACRO / ENDM)
+-------------------------------------------------------------------
+- 개념: 이름이 붙은 어셈블리 명령어 블록으로, 전처리(Preprocessing) 단계에서 매크로가 호출된 위치에 코드가 인라인 확장(Inline Expansion)됩니다.
+- 매크로 파라미터: 호출 시 전달되는 인자는 단순 텍스트 매개변수로 취급되어 치환됩니다.
+- LOCAL 지시어: 매크로 내부에서 라벨을 사용할 때 중복 라벨 에러(Duplicate Label)를 방지하기 위해 사용하며, 어셈블러가 `??0000` 형태로 고유 라벨을 자동 생성합니다.
+- 중첩 매크로 (Nested Macros): 매크로 내부에서 다른 매크로를 호출할 수 있으며 인자가 전달됩니다.
+
+/* 예제 코드: LOCAL 라벨을 포함한 매크로 정의 및 활용 */
+; 텍스트 출력 매크로 정의
+mWrite MACRO text
+    LOCAL string                         ; 고유 라벨 생성
+    .data
+    string BYTE text, 0
+    .code
+    push edx
+    mov  edx, OFFSET string
+    call WriteString
+    pop  edx
+ENDM
+
+; 중첩 매크로 예시
+mWriteLn MACRO text
+    mWrite text                          ; mWrite 매크로 호출
+    call   Crlf
+ENDM
+
+4. 조건부 어셈블 지시어 및 특수 연산자 (Conditional Directives & Special Operators)
+-------------------------------------------------------------------
+- 조건부 어셈블 지시어: 조건에 따라 어셈블리 코드를 선택적으로 컴파일/포함합니다.
+  * `IF` / `ELSE` / `ELSEIF` / `ENDIF`: 일반 조건 비교.
+  * `IFB` / `IFNB`: 인자가 비어있는지(If Blank) / 안 비어있는지 확인.
+  * `IFIDN` / `IFIDNI`: 두 인자 텍스트 일치 여부 비교 (IFIDNI는 대소문자 구별 없음).
+  * `EXITM`: 매크로 실행을 즉시 종료하고 빠져나옴.
+- 특수 연산자:
+  * `&` (Substitution Operator): 파라미터 이름의 모호함을 해소하기 위한 텍스트 치환 연산자.
+  * `<>` (Literal-Text Operator): 문자열 리터럴 지정.
+  * `!` (Literal-Character Operator): 특수 문자 자체를 기호로 취급.
+  * `%` (Expansion Operator): 수식이나 텍스트 매크로의 값을 텍스트 표현으로 확장.
+
+/* 예제 코드: IFB 및 IFIDNI를 이용한 매크로 인자 검사 */
+mReadBuf MACRO bufferPtr, maxChars
+    IFB <bufferPtr>                     ; 인자가 누락된 경우
+        ECHO * Error: bufferPtr parameter missing!
+        EXITM                            ; 매크로 탈출
+    ENDIF
+
+    IFIDNI <maxChars>, <EDX>             ; 두 번째 인자가 EDX인지 검사
+        ECHO * Error: maxChars cannot be EDX!
+        EXITM
+    ENDIF
+
+    push ecx
+    push edx
+    mov  edx, bufferPtr
+    mov  ecx, maxChars
+    call ReadString
+    pop  edx
+    pop  ecx
+ENDM
