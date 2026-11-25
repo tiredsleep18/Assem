@@ -1,0 +1,598 @@
+```text
+===================================================================
+ [Assembly Language for x86 Processors 7th Edition] Chapter 10 풀이
+  (10.7 Review Questions and Exercises & 10.8 Programming Exercises)
+===================================================================
+
+[10.7 Review Questions and Exercises]
+
+10.7.1 Short Answer
+-------------------------------------------------------------------
+1. What is the purpose of the STRUCT directive?
+   - 답: 논리적으로 연관된 변수(필드)들을 하나의 데이터 구조체 템플릿으로 정의하여 묶어주는 지시어입니다.
+
+2. Given RentalInvoice STRUCT invoiceNum BYTE 5 DUP(' '), dailyPrice WORD ?, daysRented WORD ? RentalInvoice ENDS:
+   State whether or not each of the following declarations is valid:
+   a. rentals RentalInvoice <>            -> Valid (기본 초기값으로 구조체 변수 선언)
+   b. RentalInvoice rentals <>            -> Invalid (변수 이름과 구조체 타입의 순서가 바뀜)
+   c. march RentalInvoice <'12345',10,0> -> Valid (필드 순서에 맞게 초기값 재정의)
+   d. RentalInvoice <,10,0>               -> Invalid (변수 식별자 이름 누락)
+   e. current RentalInvoice <,15,0,0>     -> Invalid (구조체 필드는 3개인데 초기값이 4개 전달됨)
+
+3. (True/False): A macro cannot contain data definitions.
+   - 답: False (매크로는 내부에서 .data 세그먼트를 열어 데이터 변수 정의를 포함할 수 있습니다).
+
+4. What is the purpose of the LOCAL directive?
+   - 답: 매크로 내부에서 선언된 라벨에 ??0000 형태의 고유 라벨명을 할당하여, 매크로가 여러 번 호출(확장)될 때 발생하는 중복 라벨 에러(Duplicate Label Error)를 방지합니다.
+
+5. Which directive displays a message on the console during the assembly step?
+   - 답: ECHO
+
+6. Which directive marks the end of a conditional block of statements?
+   - 답: ENDIF
+
+7. List all the relational operators that can be used in constant boolean expressions.
+   - 답: LT (Less Than), GT (Greater Than), EQ (Equal), NE (Not Equal), LE (Less Than or Equal), GE (Greater Than or Equal)
+
+8. What is the purpose of the & operator in a macro definition?
+   - 답: 치환 연산자(Substitution Operator)로, 매크로 파라미터가 큰따옴표 안의 문자열 리터럴이나 다른 텍스트와 붙어있을 때 해당 파라미터를 전달된 인자 값으로 강제 치환해 줍니다.
+
+9. What is the purpose of the ! operator in a macro definition?
+   - 답: 리터럴 문자 연산자(Literal-Character Operator)로, 특수 기호(<, >, %, ! 등)가 매크로 전처리기 기호로 해석되지 않고 단순 일반 문자로 취급되도록 강제합니다.
+
+10. What is the purpose of the % operator in a macro definition?
+    - 답: 확장 연산자(Expansion Operator)로, 텍스트 매크로를 확장하거나 매크로 호출 시 상수 수식을 계산된 텍스트 표현으로 변환하여 전달합니다.
+
+10.7.2 Algorithm Workbench
+-------------------------------------------------------------------
+1. field1(16비트 WORD)과 field2(20개 32비트 DWORD 배열)를 포함하는 SampleStruct 구조체 정의:
+   SampleStruct STRUCT
+       field1 WORD ?
+       field2 DWORD 20 DUP(?)
+   SampleStruct ENDS
+
+2. SYSTEMTIME 구조체의 wHour 필드 값을 가져오는 구문:
+   movzx eax, sysTime.wHour
+
+3. Triangle 구조체 변수를 선언하고 세 정점을 (0,0), (5,0), (7,6)으로 초기화:
+   Triangle STRUCT
+       Vertex1 COORD <>
+       Vertex2 COORD <>
+       Vertex3 COORD <>
+   Triangle ENDS
+
+   .data
+   t1 Triangle <{0,0}, {5,0}, {7,6}>
+
+4. 10개의 Triangle 구조체 배열을 선언하고 Vertex1을 (0..10, 0..10) 범위의 무작위 좌표로 초기화하는 루프:
+   .data
+   triangles Triangle 10 DUP(<>)
+   .code
+   mov ecx, 10
+   mov edi, OFFSET triangles
+   L1:
+       mov eax, 11
+       call RandomRange
+       mov (Triangle PTR [edi]).Vertex1.X, ax
+       mov eax, 11
+       call RandomRange
+       mov (Triangle PTR [edi]).Vertex1.Y, ax
+       add edi, TYPE Triangle
+       loop L1
+
+5. 단일 문자를 지정된 횟수만큼 반복 출력하는 mPrintChar 매크로:
+   mPrintChar MACRO char:REQ, count:REQ
+       LOCAL L1
+       push ecx
+       push eax
+       mov al, char
+       mov ecx, count
+   L1:
+       call WriteChar
+       loop L1
+       pop eax
+       pop ecx
+   ENDM
+
+6. 0부터 n-1 사이의 난수를 생성하는 mGenRandom 매크로:
+   mGenRandom MACRO n:REQ
+       mov eax, n
+       call RandomRange
+   ENDM
+
+7. 프롬프트를 출력하고 사용자로부터 정수를 입력받아 더블워드 변수에 저장하는 mPromptInteger 매크로:
+   mPromptInteger MACRO promptText:REQ, varName:REQ
+       push edx
+       push eax
+       mWrite promptText
+       call ReadInt
+       mov varName, eax
+       pop eax
+       pop edx
+   ENDM
+
+8. 커서 위치를 이동하고 문자열 리터럴을 출력하는 mWriteAt 매크로:
+   mWriteAt MACRO X:REQ, Y:REQ, text:REQ
+       mGotoxy X, Y
+       mWrite text
+   ENDM
+
+9. mWriteString namePrompt 호출 시 전처리기가 확장하는 코드:
+   push edx
+   mov edx, OFFSET namePrompt
+   call WriteString
+   pop edx
+
+10. mReadString customerName 호출 시 전처리기가 확장하는 코드:
+    push ecx
+    push edx
+    mov edx, OFFSET customerName
+    mov ecx, SIZEOF customerName
+    call ReadString
+    pop edx
+    pop ecx
+
+11. 변수의 OFFSET, LENGTHOF, TYPE을 mDumpMem에 전달하는 mDumpMemx 매크로:
+    mDumpMemx MACRO varName:REQ
+        mDumpMem OFFSET varName, LENGTHOF varName, TYPE varName
+    ENDM
+
+12. 매크로 파라미터에 기본 초기값(Default Argument)을 설정하는 예시:
+    mWriteSpace MACRO count:=<1>
+        LOCAL spaces
+        .data
+        spaces BYTE count DUP(' '), 0
+        .code
+        push edx
+        mov edx, OFFSET spaces
+        call WriteString
+        pop edx
+    ENDM
+
+13. IF, ELSE, ENDIF 조건부 어셈블리 지시어 사용 예시:
+    IF MODE EQ 1
+        mov eax, 100
+    ELSE
+        mov eax, 200
+    ENDIF
+
+14. 매크로 파라미터 Z가 0보다 작으면 경고 메시지를 출력하는 IF 지시어:
+    IF Z LT 0
+        ECHO * Error: Parameter Z is less than zero!
+    ENDIF
+
+15. 문자열 리터럴 내에서 치환 연산자(&)를 활용하는 매크로 예시:
+    mShowVar MACRO name
+        .data
+        msg BYTE "Variable &name contents: ", 0
+    ENDM
+
+16. mLocate 매크로 호출 시 확장 코드 분석:
+    - mLocate -2, 20 : xval < 0 조건이 참이 되어 EXITM에 의해 매크로 확장이 중단됨 (코드 생성 안 됨).
+    - mLocate 10, 20 :
+        mov bx, 0
+        mov ah, 2
+        mov dh, 20
+        mov dl, 10
+        int 10h
+    - mLocate col, row :
+        mov bx, 0
+        mov ah, 2
+        mov dh, row
+        mov dl, col
+        int 10h
+
+===================================================================
+[10.8 Programming Exercises]
+===================================================================
+
+1. mReadkey Macro
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+mReadkey MACRO asciiVar:REQ, scanVar:REQ
+    call ReadChar
+    mov asciiVar, al
+    mov scanVar, ah
+ENDM
+
+.data
+ascii BYTE ?
+scan  BYTE ?
+
+.code
+main PROC
+    mReadkey ascii, scan
+    movzx eax, ascii
+    call WriteHex
+    call Crlf
+    movzx eax, scan
+    call WriteHex
+    call Crlf
+    exit
+main ENDP
+END main
+
+2. mWritestringAttr Macro
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+INCLUDE Macros.inc
+
+mWritestringAttr MACRO strName:REQ, color:REQ
+    push eax
+    mov eax, color
+    call SetTextColor
+    mWriteString strName
+    pop eax
+ENDM
+
+.data
+myString BYTE "Colored string output example!", 0
+
+.code
+main PROC
+    mWritestringAttr myString, yellow + (blue * 16)
+    call Crlf
+    exit
+main ENDP
+END main
+
+3. mMove32 Macro
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+mMove32 MACRO dest:REQ, src:REQ
+    push src
+    pop dest
+ENDM
+
+.data
+val1 DWORD 12345678h
+val2 DWORD ?
+
+.code
+main PROC
+    mMove32 val2, val1
+    mov eax, val2
+    call WriteHex        ; 12345678h 출력
+    call Crlf
+    exit
+main ENDP
+END main
+
+4. mMult32 Macro
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+mMult32 MACRO dest:REQ, src1:REQ, src2:REQ
+    push eax
+    mov eax, src1
+    imul eax, src2
+    mov dest, eax
+    pop eax
+ENDM
+
+.data
+var1 DWORD 25
+var2 DWORD 4
+res  DWORD ?
+
+.code
+main PROC
+    mMult32 res, var1, var2
+    mov eax, res
+    call WriteDec        ; 100 출력
+    call Crlf
+    exit
+main ENDP
+END main
+
+5. mReadInt Macro
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+mReadInt MACRO targetVar:REQ
+    push eax
+    call ReadInt
+    IF (TYPE targetVar EQ 1)
+        mov targetVar, al
+    ELSEIF (TYPE targetVar EQ 2)
+        mov targetVar, ax
+    ELSEIF (TYPE targetVar EQ 4)
+        mov targetVar, eax
+    ELSE
+        ECHO * Error: Invalid target variable size for mReadInt!
+    ENDIF
+    pop eax
+ENDM
+
+.data
+bVal BYTE ?
+wVal WORD ?
+dVal DWORD ?
+
+.code
+main PROC
+    mReadInt bVal
+    mReadInt wVal
+    mReadInt dVal
+    exit
+main ENDP
+END main
+
+6. mWriteInt Macro
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+mWriteInt MACRO intVal:REQ
+    push eax
+    IF (TYPE intVal EQ 1)
+        movsx eax, intVal
+    ELSEIF (TYPE intVal EQ 2)
+        movsx eax, intVal
+    ELSEIF (TYPE intVal EQ 4)
+        mov eax, intVal
+    ELSE
+        mov eax, intVal  ; 즉시값 또는 기본 레지스터 처리
+    ENDIF
+    call WriteInt
+    pop eax
+ENDM
+
+.data
+sByte SBYTE -15
+sWord SWORD -1000
+sDword SDWORD 50000
+
+.code
+main PROC
+    mWriteInt sByte
+    call Crlf
+    mWriteInt sWord
+    call Crlf
+    mWriteInt sDword
+    call Crlf
+    exit
+main ENDP
+END main
+
+7. The Professor's Lost Phone
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+WalkMax = 50
+StartX = 25
+StartY = 25
+
+DrunkardWalk STRUCT
+    path COORD WalkMax DUP(<0,0>)
+    pathsUsed WORD 0
+DrunkardWalk ENDS
+
+.data
+aWalk DrunkardWalk <>
+dropStep WORD ?
+phonePos COORD <0,0>
+msgPhone BYTE "Lost Phone dropped at step ", 0
+msgPos   BYTE " at coordinates (", 0
+msgEnd   BYTE ")", 0dh, 0ah, 0
+
+.code
+main PROC
+    call Randomize
+    mov eax, WalkMax
+    call RandomRange
+    inc eax
+    mov dropStep, ax
+
+    mov esi, OFFSET aWalk
+    mov edi, esi
+    add edi, OFFSET DrunkardWalk.path
+    mov ecx, WalkMax
+    mov bx, StartX
+    mov dx, StartY
+
+    mov ax, 1
+L1:
+    mov (COORD PTR [edi]).X, bx
+    mov (COORD PTR [edi]).Y, dx
+
+    cmp ax, dropStep
+    jne NextStep
+    mov phonePos.X, bx
+    mov phonePos.Y, dx
+
+NextStep:
+    push eax
+    mov eax, 4
+    call RandomRange
+    cmp eax, 0
+    je North
+    cmp eax, 1
+    je South
+    cmp eax, 2
+    je West
+    inc bx
+    jmp LoopCont
+North:
+    dec dx
+    jmp LoopCont
+South:
+    inc dx
+    jmp LoopCont
+West:
+    dec bx
+LoopCont:
+    pop eax
+    add edi, TYPE COORD
+    inc ax
+    loop L1
+
+    ; 핸드폰 떨어진 위치 출력
+    mov edx, OFFSET msgPhone
+    call WriteString
+    movzx eax, dropStep
+    call WriteDec
+    mov edx, OFFSET msgPos
+    call WriteString
+    movzx eax, phonePos.X
+    call WriteDec
+    mov al, ','
+    call WriteChar
+    movzx eax, phonePos.Y
+    call WriteDec
+    mov edx, OFFSET msgEnd
+    call WriteString
+
+    exit
+main ENDP
+END main
+
+8. Linked List
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+ListNode STRUCT
+    NodeData DWORD ?
+    NextPtr  DWORD ?
+ListNode ENDS
+
+TotalNodeCount = 5
+NULL = 0
+Counter = 0
+
+.data
+LinkedList LABEL PTR ListNode
+REPEAT TotalNodeCount
+    Counter = Counter + 1
+    ListNode <Counter, ($ + Counter * SIZEOF ListNode)>
+ENDM
+ListNode <0, 0>
+
+.code
+main PROC
+    mov esi, OFFSET LinkedList
+NextNode:
+    mov eax, (ListNode PTR [esi]).NextPtr
+    cmp eax, NULL
+    je Quit
+    mov eax, (ListNode PTR [esi]).NodeData
+    call WriteDec
+    call Crlf
+    mov esi, (ListNode PTR [esi]).NextPtr
+    jmp NextNode
+Quit:
+    exit
+main ENDP
+END main
+
+9. Shifting Multiple Doublewords (mShiftDoublewords)
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+mShiftDoublewords MACRO arrayName:REQ, direction:REQ, numberOfBits:REQ
+    LOCAL L_Right, L_Left, Done
+    push eax
+    push ebx
+    push ecx
+    push esi
+
+    mov bl, numberOfBits
+    mov esi, OFFSET arrayName
+    mov ecx, LENGTHOF arrayName - 1
+
+    IFIDNI <direction>, <R>
+        jmp L_Right
+    ELSEIFIDNI <direction>, <L>
+        jmp L_Left
+    ENDIF
+
+L_Right:
+    push ecx
+    mov eax, [esi + TYPE DWORD]
+    mov cl, bl
+    shrd [esi], eax, cl
+    add esi, TYPE DWORD
+    pop ecx
+    loop L_Right
+    shr DWORD PTR [esi], bl
+    jmp Done
+
+L_Left:
+    add esi, (LENGTHOF arrayName - 1) * TYPE DWORD
+L_LeftLoop:
+    push ecx
+    mov eax, [esi - TYPE DWORD]
+    mov cl, bl
+    shld [esi], eax, cl
+    sub esi, TYPE DWORD
+    pop ecx
+    loop L_LeftLoop
+    shl DWORD PTR [esi], bl
+
+Done:
+    pop esi
+    pop ecx
+    pop ebx
+    pop eax
+ENDM
+
+.data
+arrD DWORD 12345678h, 9ABCDEF0h, 11223344h
+
+.code
+main PROC
+    mShiftDoublewords arrD, R, 4
+    mShiftDoublewords arrD, L, 4
+    exit
+main ENDP
+END main
+
+10. Three-Operand Instructions
+-------------------------------------------------------------------
+INCLUDE Irvine32.inc
+
+add3 MACRO dest:REQ, src1:REQ, src2:REQ
+    mov eax, src1
+    add eax, src2
+    mov dest, eax
+ENDM
+
+sub3 MACRO dest:REQ, src1:REQ, src2:REQ
+    mov eax, src1
+    sub eax, src2
+    mov dest, eax
+ENDM
+
+mul3 MACRO dest:REQ, src1:REQ, src2:REQ
+    mov eax, src1
+    imul eax, src2
+    mov dest, eax
+ENDM
+
+div3 MACRO dest:REQ, src1:REQ, src2:REQ
+    mov eax, src1
+    cdq
+    idiv src2
+    mov dest, eax
+ENDM
+
+.data
+w SDWORD 10
+x SDWORD ?
+y SDWORD 5
+z SDWORD 3
+temp SDWORD ?
+
+.code
+main PROC
+    ; x = (w + y) * z 연산 수행
+    add3 temp, w, y      ; temp = w + y (15)
+    mul3 x, temp, z      ; x = temp * z (45)
+
+    mov eax, x
+    call WriteInt        ; +45 출력
+    call Crlf
+    exit
+main ENDP
+END main
